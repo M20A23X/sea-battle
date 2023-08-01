@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:mysql://bopjfokeclymapmp7u58-mysql.services.clever-cloud.com:3306/bopjfokeclymapmp7u58</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="bjfbqkegepz9ejwtnsm8@bjfbqkegepz9ejwtnsm8-mysql.services.clever-cloud.com" uuid="03a1966d-e879-408a-85f2-e3794b7e8522">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://bjfbqkegepz9ejwtnsm8-mysql.services.clever-cloud.com:3306/bjfbqkegepz9ejwtnsm8</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>
