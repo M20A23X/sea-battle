@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal" created-in="WS-231.9161.29">
+    <data-source name="bopjfokeclymapmp7u58@bopjfokeclymapmp7u58-mysql.services.clever-cloud.com" uuid="f549e426-f15c-439c-b2e2-fdb24483f44b">
+      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="MYSQL" exact-version="0" />
+      <secret-storage>forget</secret-storage>
+      <schema-mapping />
+    </data-source>
+  </component>
+</project>
