@@ -40,6 +40,9 @@
       "routers/*": [
         "./routers/*"
       ],
+      "entities/*": [
+        "./entities/*"
+      ],
       "schemas/*": [
         "./schemas/*"
       ],
