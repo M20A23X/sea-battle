@@ -12,7 +12,8 @@
     "strict": true,
     "incremental": false,
     "skipLibCheck": true,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": true,
@@ -40,8 +41,8 @@
       "routers/*": [
         "./routers/*"
       ],
-      "entities/*": [
-        "./entities/*"
+      "modules/*": [
+        "./modules/*"
       ],
       "schemas/*": [
         "./schemas/*"
@@ -49,8 +50,11 @@
       "services/*": [
         "./services/*"
       ],
-      "type/*": [
+      "types/*": [
         "./types/*"
+      ],
+      "static/*": [
+        "./static/*"
       ],
       "utils/*": [
         "./utils/*"
