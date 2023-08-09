@@ -4,6 +4,8 @@ import { Provider } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
+import { User } from 'modules/entities';
+
 export const DataSourceProvider: Provider = {
     provide: DataSource,
     useFactory: async () => {
@@ -17,7 +19,7 @@ export const DataSourceProvider: Provider = {
             username: process.env.DB_USERNAME,
             password: process.env.DB_PASSWORD,
             database: process.env.DB_DATABASE,
-            entities: [],
+            entities: [User],
             synchronize: true,
         });
         loggerService.debug(dataSource.options);

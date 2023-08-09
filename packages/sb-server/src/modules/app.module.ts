@@ -3,6 +3,7 @@ import process from 'process';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LogHttpRequestMiddleware } from 'middleware/logHttpRequest.middleware';
+import { UsersModule } from 'modules/user/users.module';
 import { LoggerService } from 'services/logger.service';
 
 @Module({
@@ -11,6 +12,7 @@ import { LoggerService } from 'services/logger.service';
             isGlobal: true,
             envFilePath: `.env.${process.env.NODE_ENV}`,
         }),
+        UsersModule,
     ],
     providers: [LoggerService],
 })
