@@ -20,44 +20,47 @@
     "noFallthroughCasesInSwitch": false,
     "esModuleInterop": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./src",
+    "rootDir": "./",
+    "baseUrl": "./",
     "paths": {
       "configs/*": [
-        "./configs/*"
+        "./src/configs/*"
       ],
       "controllers/*": [
-        "./controllers/*"
+        "./src/controllers/*"
+      ],
+      "decorators/*": [
+        "./src/decorators/*"
       ],
       "exceptions/*": [
-        "./exceptions/*"
+        "./src/exceptions/*"
       ],
       "middleware/*": [
-        "./middleware/*"
+        "./src/middleware/*"
       ],
       "repositories/*": [
-        "./repositories/*"
+        "./src/repositories/*"
       ],
       "routers/*": [
-        "./routers/*"
+        "./src/routers/*"
       ],
       "modules/*": [
-        "./modules/*"
+        "./src/modules/*"
       ],
       "schemas/*": [
-        "./schemas/*"
+        "./src/schemas/*"
       ],
       "services/*": [
-        "./services/*"
+        "./src/services/*"
       ],
       "types/*": [
-        "./types/*"
+        "./src/types/*"
       ],
       "static/*": [
-        "./static/*"
+        "./src/static/*"
       ],
       "utils/*": [
-        "./utils/*"
+        "./src/utils/*"
       ]
     }
   }

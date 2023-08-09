@@ -2,7 +2,12 @@
 /node_modules
 /dist
 
-# Logs
+# Env
+.env*
+!.env.test
+
+# Logs /cache
+*cache
 logs
 *.log
 npm-debug.log*
