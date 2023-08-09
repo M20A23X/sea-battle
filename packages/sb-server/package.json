@@ -12,13 +12,15 @@
     "format": "prettier --write src/",
     "lint": "eslint --cache src/",
     "lint:fix": "eslint --fix src/",
-    "test": "jest --watch --passWithNoTests",
-    "test:watch": "SET NODE_ENV=test& yarn test",
-    "test:coverage": "SET NODE_ENV=test& yarn test --coverage",
+    "test": "SET NODE_ENV=test& jest --passWithNoTests",
+    "test:watch": "SET NODE_ENV=test& yarn test --watch",
+    "test:coverage": "SET NODE_ENV=test& yarn test --watch --coverage",
     "pre-commit": "lint-staged",
     "pre-push": "lint-staged"
   },
   "dependencies": {
+    "@nestjs/class-transformer": "^0.4.0",
+    "@nestjs/class-validator": "^0.13.4",
     "@nestjs/common": "^9.4.3",
     "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^9.4.3",
