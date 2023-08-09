@@ -5,16 +5,18 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "nest build",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "start": "SET NODE_ENV=dev& nest start",
+    "start:dev": "SET NODE_ENV=dev& nest start --watch",
+    "start:debug": "SET NODE_ENV=dev& nest start --debug --watch",
     "start:prod": "node dist/main",
     "format": "prettier --write src/",
     "lint": "eslint --cache src/",
     "lint:fix": "eslint --fix src/",
-    "test": "jest --passWithNoTests src/",
+    "test": "SET NODE_ENV=test& jest --passWithNoTests",
+    "test:watch": "SET NODE_ENV=test& yarn test --watch",
+    "test:coverage": "SET NODE_ENV=test& yarn test --watch --coverage",
     "pre-commit": "lint-staged",
-    "pre-push": "yarn lint:fix && yarn format && yarn test"
+    "pre-push": "lint-staged"
   },
   "dependencies": {
     "@nestjs/class-transformer": "^0.4.0",
@@ -44,22 +46,5 @@
     "ts-loader": "^9.4.3",
     "ts-node": "^10.9.1",
     "tsconfig": "^7.0.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   }
 }
