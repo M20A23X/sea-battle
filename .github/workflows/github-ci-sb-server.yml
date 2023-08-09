@@ -1,4 +1,4 @@
-name: API-JS CI
+name: Server CI
 
 on:
   push:
@@ -18,25 +18,28 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
+        node-version: [ 16.x, 18.x, 20.x ]
 
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v3
-      -
-        name: Installing Node.js ${{ matrix.node-version }}
+      - name: Installing Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      -
-        name: Installing dependencies
+      - name: Installing MySql
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          character set server: 'utf8mb3'
+          collation server: 'utf8mb3_general_ci'
+          mysql version: '8.0'
+          mysql database: 'games_test'
+          mysql root password: ${{ secrets.ROOT_PASSWORD }}
+      - name: Installing dependencies
         run: yarn install
-      -
-        name: Building
+      - name: Building
         working-directory: ./packages/sb-server
         run: yarn build
-      -
-        name: Testing
+      - name: Testing
         working-directory: ./packages/sb-server
         run: yarn test
