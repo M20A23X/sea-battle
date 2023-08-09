@@ -1,8 +1,8 @@
 {
-  "src/**/*.ts": [
+  "./**/*.ts": [
     "yarn format",
     "yarn lint:fix",
-    "yarn test",
+    "yarn test --bail=1",
     "git add -u"
   ]
 }
