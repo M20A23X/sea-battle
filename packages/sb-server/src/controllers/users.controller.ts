@@ -15,14 +15,16 @@ import {
     ApiProduces,
 } from '@nestjs/swagger';
 
-import { TPromiseResponse, TResponse } from 'types/requestResponse';
-import { UsersService } from 'services/users.service';
+import { TPromiseResponse, TResponse } from 'sharedtypes/requestResponse';
+import { IUserPublicData } from 'shared/types/user';
+import { TUserReadDbQualifier } from 'repositories/users.repository';
+
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
-import { IUserPublicData } from 'modules/user/models/entities/user.entity';
 import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
 import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
 import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
-import { TUserReadDbQualifier } from 'repositories/users.repository';
+
+import { UsersService } from 'services/users.service';
 
 import { FALLBACK } from 'static/database';
 
