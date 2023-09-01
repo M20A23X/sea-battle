@@ -10,12 +10,12 @@ RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
     && yarn upgrade bcrypt --frozen-lockfile --non-interactive
 
 COPY --chown=app:app ./package.json ./lerna.json ./jest.config.json ./
-COPY --chown=app:app ./packages/shared/src/ ./packages/shared/src/
+COPY --chown=app:app ./packages/shared/src*/ ./packages/shared/src/
 
 WORKDIR /usr/src/app/packages/server/
 COPY --chown=app:app ./packages/server/package.json ./packages/server/jest.config.js ./packages/server/tsconfig.json ./
 COPY --chown=app:app ./packages/server/src/ ./src/
-COPY --chown=app:app ./packages/server/specs/ ./specs/
+COPY --chown=app:app ./packages/server/specs*/ ./specs/
 
 FROM node:18-alpine
 WORKDIR /usr/src/app/
