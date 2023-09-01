@@ -16,7 +16,7 @@
     "test:watch": "yarn test --watch",
     "test:coverage": "yarn test --coverage",
     "pre-commit": "lint-staged",
-    "pre-push": "lint-staged"
+    "pre-push": "yarn lint:fix && yarn test --bail=1 && yarn format"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.0",
