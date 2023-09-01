@@ -2,7 +2,7 @@
   "src/**/*.{ts,tsx}": [
     "yarn format",
     "yarn lint:fix",
-    "yarn test:no-watch",
+    "yarn test --bail=1",
     "git add -u"
   ],
   "src/**/*.scss": [

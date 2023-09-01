@@ -1,4 +1,18 @@
 {
+  "exclude": [
+    "dist/"
+  ],
+  "references": [
+    {
+      "path": "../shared/"
+    }
+  ],
+  "include": [
+    "specs/",
+    "src/",
+    "modules.d.ts",
+    "node_modules/@types"
+  ],
   "compilerOptions": {
     "target": "es5",
     "lib": [
@@ -9,51 +23,29 @@
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
     "resolveJsonModule": true,
+    "moduleResolution": "Node",
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./src",
+    "outDir": "dist/",
+    "rootDir": ".",
+    "baseUrl": "src/",
     "paths": {
-      "assets/*": [
-        "./assets/*"
+      "*": [
+        "./*"
       ],
-      "styles/*": [
-        "./styles/*"
-      ],
-      "ui/*": [
-        "./components/ui/*"
-      ],
-      "providers/*": [
-        "./components/providers/*"
-      ],
-      "types/*": [
-        "./types/*"
-      ],
-      "context/*": [
-        "./context/*"
-      ],
-      "schemas/*": [
-        "./schemas/*"
-      ],
-      "services/*": [
-        "./services/*"
-      ],
-      "utils/*": [
-        "./utils/*"
+      "shared*": [
+        "../../shared/src/*"
       ]
     }
-  },
-  "include": [
-    "./src/**/*.tsx",
-    "modules.d.ts",
-    "node_modules/@types"
-  ]
+  }
 }
