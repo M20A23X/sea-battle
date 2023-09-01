@@ -1,7 +1,7 @@
 import { IsString, IsUUID, Length, Matches } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IUser } from 'modules/user/models/entities/user.entity';
+import { IUser } from 'shared/types/user';
 
 import { USERS_SCHEMA } from 'static/database';
 

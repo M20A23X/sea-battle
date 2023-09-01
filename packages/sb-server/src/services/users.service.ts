@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { TPromiseResponse, TResponse } from 'types/requestResponse';
+import { TPromiseResponse, TResponse } from 'sharedtypes/requestResponse';
+import {
+    IUser,
+    IUserCreateData,
+    IUserPublicData,
+    IUserUpdateData,
+} from 'shared/types/user';
 import {
     IResponseService,
     ResponseService,
@@ -11,23 +17,17 @@ import {
     TUserReadDbQualifier,
     UsersRepository,
 } from 'repositories/users.repository';
-import {
-    IUser,
-    IUserPublicData,
-} from 'modules/user/models/entities/user.entity';
-import { UserCreateData } from 'modules/user/models/dtos/userCreate.dto';
-import { UserUpdateData } from 'modules/user/models/dtos/userUpdate.dto';
 
 import { hashPassword } from 'utils/hashPassword.util';
 
 export interface IUsersService {
-    createUser(data: UserCreateData): TPromiseResponse;
+    createUser(data: IUserCreateData): TPromiseResponse;
 
     readUsers(
         qualifier: TUserReadDbQualifier,
     ): TPromiseResponse<IUserPublicData[]>;
 
-    updateUser(data: UserUpdateData): TPromiseResponse<IUserPublicData>;
+    updateUser(data: IUserUpdateData): TPromiseResponse<IUserPublicData>;
 
     deleteUser(uuid: string, currentPassword: string): TPromiseResponse;
 }
@@ -64,7 +64,7 @@ export class UsersService implements IUsersService {
     }
 
     ///--- Public ---///
-    public async createUser(data: UserCreateData): TPromiseResponse {
+    public async createUser(data: IUserCreateData): TPromiseResponse {
         const { passwordConfirm: _, password, ...publicData } = data;
 
         try {
@@ -98,7 +98,7 @@ export class UsersService implements IUsersService {
     }
 
     public async updateUser(
-        data: UserUpdateData,
+        data: IUserUpdateData,
     ): TPromiseResponse<IUserPublicData> {
         const {
             currentPassword,

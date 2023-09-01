@@ -12,23 +12,24 @@ import {
     UpdateResult,
 } from 'typeorm';
 
-import { ILoggerService, LoggerService } from 'services/logger.service';
 import {
     IUser,
+    IUserCreateData,
     IUserPublicData,
-    User,
-} from 'modules/user/models/entities/user.entity';
-import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
-import { UserCreateData } from 'modules/user/models/dtos/userCreate.dto';
-import { UserUpdateData } from 'modules/user/models/dtos/userUpdate.dto';
+    IUsersReadData,
+    IUserUpdateData,
+} from 'shared/types/user';
+import { ILoggerService, LoggerService } from 'services/logger.service';
+import { User } from 'modules/user/models/entities/user.entity';
+
 import { USERS_SCHEMA } from 'static/database';
 
 export type TUserReadDbQualifier =
     | string
-    | Required<Pick<UsersReadDTO, 'startId' | 'endId'>>;
-export type TUserCreateDbData = Omit<UserCreateData, 'passwordConfirm'>;
+    | Required<Pick<IUsersReadData, 'startId' | 'endId'>>;
+export type TUserCreateDbData = Omit<IUserCreateData, 'passwordConfirm'>;
 export type TUserUpdateDbData = Omit<
-    UserUpdateData,
+    IUserUpdateData,
     'passwordConfirm' | 'currentPassword'
 >;
 
@@ -60,10 +61,10 @@ export class UsersRepository
     );
 
     ///--- Public ---///
-    async insertUser(userCreateData: TUserCreateDbData): Promise<void> {
+    async insertUser(iUserCreateData: TUserCreateDbData): Promise<void> {
         const insertQuery: InsertQueryBuilder<IUser> = this.createQueryBuilder()
             .insert()
-            .values(userCreateData);
+            .values(iUserCreateData);
         this._loggerService.debug(insertQuery.getQuery());
         const insertRes: InsertResult = await insertQuery.execute();
         this._loggerService.debug(

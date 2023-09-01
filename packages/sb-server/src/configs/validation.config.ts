@@ -1,6 +1,6 @@
 import { ValidationPipeOptions } from '@nestjs/common';
 
-export const VALIDATION_CONFIG: ValidationPipeOptions = {
+export const validationConfig: ValidationPipeOptions = {
     transform: true,
     whitelist: true,
     forbidNonWhitelisted: true,

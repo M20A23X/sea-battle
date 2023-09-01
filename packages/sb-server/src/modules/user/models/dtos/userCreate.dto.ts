@@ -7,12 +7,17 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, OmitType } from '@nestjs/swagger';
+
+import { IUserCreateData, TUserReqDTO } from 'shared/types/user';
+
 import { IsEqualTo } from 'decorators/IsEqualTo';
 
 import { UserDTO } from 'modules/user/models/dtos/user.dto';
-import { TUserReqDTO } from 'modules/user/models/entities/user.entity';
 
-export class UserCreateData extends OmitType(UserDTO, ['userUUID'] as const) {
+export class UserCreateData
+    extends OmitType(UserDTO, ['userUUID'] as const)
+    implements IUserCreateData
+{
     @ApiProperty()
     @IsString()
     @IsNotEmpty()
