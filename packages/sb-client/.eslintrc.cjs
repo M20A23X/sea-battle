@@ -27,10 +27,9 @@ module.exports = {
   },
   settings: {
     "import/resolver": {
-      "typescript": ['.ts'],
-      "node": {
-        "extensions": [".ts", ".tsx"],
-        "moduleDirectory": [".", "node_modules"]
+      typescript: {
+        extensions: [".ts", "d.ts", ".tsx"],
+        moduleDirectory: [".", "src/", "node_modules/"]
       }
     }
   }

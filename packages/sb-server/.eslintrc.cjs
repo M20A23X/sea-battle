@@ -8,9 +8,9 @@ module.exports = {
   },
   settings: {
     "import/resolver": {
-      "node": {
-        "extensions": [".ts"],
-        "moduleDirectory": ["src", "node_modules"]
+      typescript: {
+        extensions: [".ts"],
+        moduleDirectory: [".", "src/", "node_modules/"]
       }
     }
   }
