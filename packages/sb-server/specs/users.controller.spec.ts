@@ -1,8 +1,12 @@
 import process from 'process';
-import { Test, TestingModule } from '@nestjs/testing';
 
+import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { DataSource } from 'typeorm';
+
+import { TResponse } from 'shared/types/requestResponse';
+import { IUser, IUserPublicData } from 'shared/types/user';
+
 import {
     ACTION_RANDOM_PERCENT,
     CONNECTION_CHECK_INTERVAL,
@@ -17,23 +21,19 @@ import {
     randomString,
 } from './utils/random';
 
-import { TResponse } from 'types/requestResponse';
+import {
+    IUsersController,
+    UsersController,
+} from 'controllers/users.controller';
+
 import { IResponseService, ResponseService } from 'services/response.service';
 import {
     TUserCreateDbData,
     UsersRepository,
 } from 'repositories/users.repository';
 import { UsersService } from 'services/users.service';
-import {
-    IUsersController,
-    UsersController,
-} from 'controllers/users/users.controller';
 
-import {
-    IUser,
-    IUserPublicData,
-    User,
-} from 'modules/user/models/entities/user.entity';
+import { User } from 'modules/user/models/entities/user.entity';
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
 import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
 import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
@@ -89,7 +89,7 @@ describe('User controller tests.', () => {
 
     beforeEach(async () => {
         return new Promise<void>((resolve) => {
-            const interval: NodeJS.Timer = setInterval(() => {
+            const interval: NodeJS.Timeout = setInterval(() => {
                 if (dataSource.isInitialized) {
                     clearInterval(interval);
                     return resolve();

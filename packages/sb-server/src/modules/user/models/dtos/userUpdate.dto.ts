@@ -7,9 +7,10 @@ import {
     PickType,
 } from '@nestjs/swagger';
 
+import { IUserUpdateData, TUserReqDTO } from 'shared/types/user';
 import { UserCreateData } from 'modules/user/models/dtos/userCreate.dto';
-import { TUserReqDTO } from 'modules/user/models/entities/user.entity';
 import { UserDTO } from 'modules/user/models/dtos/user.dto';
+
 import { USERS_SCHEMA } from 'static/database';
 
 const { password } = USERS_SCHEMA;
@@ -24,7 +25,10 @@ const UserUpdateDataType = IntersectionType(
     ),
 );
 
-export class UserUpdateData extends UserUpdateDataType {
+export class UserUpdateData
+    extends UserUpdateDataType
+    implements IUserUpdateData
+{
     @ApiProperty()
     @IsString()
     @Length(password.minLength, password.maxLength)
