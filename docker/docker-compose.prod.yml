@@ -1,0 +1,35 @@
+version: '3.4'
+networks:
+  games-network:
+    external: true
+
+services:
+  database:
+    extends:
+      file: docker-compose.base.yml
+      service: database
+    image: m20a20x/games:database
+    container_name: database
+
+  server:
+    extends:
+      file: docker-compose.base.yml
+      service: server
+    build:
+      dockerfile: docker/configs/server/Dockerfile.prod
+    environment:
+      NODE_ENV: prod
+    image: m20a20x/games:server
+    container_name: server
+    command: node dist/index.js
+
+  client:
+    extends:
+      file: docker-compose.base.yml
+      service: client
+    build:
+      dockerfile: docker/configs/client/Dockerfile.prod
+    environment:
+      NODE_ENV: prod
+    image: m20a20x/games:client
+    container_name: client

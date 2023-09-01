@@ -1,0 +1,37 @@
+version: '3.4'
+networks:
+  games-network:
+    external: true
+
+services:
+  database:
+    extends:
+      file: docker-compose.base.yml
+      service: database
+    image: m20a20x/games:database
+    container_name: database-test
+
+  server:
+    extends:
+      file: docker-compose.base.yml
+      service: server
+    build:
+      dockerfile: docker/configs/server/Dockerfile.test
+    environment:
+      NODE_ENV: test
+    image: m20a20x/games:server
+    container_name: server-test
+    command: yarn test --scope=server
+
+  client:
+    extends:
+      file: docker-compose.base.yml
+      service: client
+    build:
+      dockerfile: docker/configs/client/Dockerfile.test
+    environment:
+      NODE_ENV: test
+    image: m20a20x/games:client
+    container_name: client-test
+    command: yarn test --scope=client
+
