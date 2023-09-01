@@ -9,12 +9,12 @@ RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
     yarn install --frozen-lockfile --non-interactive --ignore-scripts
 
 COPY --chown=app:app ./package.json ./lerna.json ./jest.config.json ./
-COPY --chown=app:app ./packages/shared/src/ ./packages/shared/src/
+COPY --chown=app:app ./packages/shared/src*/ ./packages/shared/src/
 
 WORKDIR /usr/src/app/packages/client/
 COPY --chown=app:app ./packages/client/package.json ./packages/client/jest.config.cjs ./packages/client/tsconfig.json ./
 COPY --chown=app:app ./packages/client/src/ ./src/
-COPY --chown=app:app ./packages/client/specs/ ./specs/
+COPY --chown=app:app ./packages/client/specs*/ ./specs/
 
 FROM node:18-alpine
 WORKDIR /usr/src/app/
