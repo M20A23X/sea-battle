@@ -1,0 +1,35 @@
+FROM node:18 as base
+WORKDIR /usr/src/app/
+
+RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
+    --mount=type=bind,source=lerna.json,target=lerna.json \
+    --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=packages/client/package.json,target=packages/client/package.json \
+    --mount=type=bind,source=yarn.lock,target=yarn.lock \
+    yarn install --frozen-lockfile --non-interactive --ignore-scripts
+
+COPY --chown=app:app ./packages/shared/src/ ./packages/shared/src/
+COPY --chown=app:app ./packages/client/src/ ./packages/client/src/
+COPY --chown=app:app ./packages/client/public/ ./packages/client/public/
+
+RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
+    --mount=type=bind,source=lerna.json,target=lerna.json \
+    --mount=type=bind,source=.eslintrc,target=.eslintrc \
+    --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=packages/client/package.json,target=packages/client/package.json \
+    --mount=type=bind,source=packages/client/config-overrides.cjs,target=packages/client/config-overrides.cjs \
+    --mount=type=bind,source=packages/client/tsconfig.json,target=packages/client/tsconfig.json \
+    --mount=type=bind,source=packages/shared/tsconfig.json,target=packages/shared/tsconfig.json \
+    --mount=type=bind,source=packages/client/.eslintrc.cjs,target=packages/client/.eslintrc.cjs \
+     yarn build --scope=client
+
+FROM nginx:1.24.0-alpine
+ARG NGINX_PORT
+WORKDIR /var/www/
+
+COPY --from=base /usr/src/app/packages/client/build/ ./dist/
+COPY --from=base /usr/src/app/node_modules/ ./node_modules/
+COPY --chown=app:app ./docker/configs/client/nginx/templates/ /etc/nginx/templates/
+
+EXPOSE $NGINX_PORT
+CMD ["nginx", "-g", "daemon off;"]
