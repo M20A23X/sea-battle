@@ -1,0 +1,51 @@
+{
+  "exclude": [
+    "dist/"
+  ],
+  "references": [
+    {
+      "path": "../shared/"
+    }
+  ],
+  "include": [
+    "specs/",
+    "src/",
+    "modules.d.ts",
+    "node_modules/@types"
+  ],
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "resolveJsonModule": true,
+    "moduleResolution": "Node",
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react",
+    "outDir": "dist/",
+    "rootDir": ".",
+    "baseUrl": "src/",
+    "paths": {
+      "*": [
+        "./*"
+      ],
+      "shared*": [
+        "../../shared/src/*"
+      ]
+    }
+  }
+}

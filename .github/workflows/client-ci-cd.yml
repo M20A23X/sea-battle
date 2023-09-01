@@ -1,0 +1,188 @@
+name: Client CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'master', 'dev' ]
+  pull_request:
+    branches: [ 'master', 'dev' ]
+
+env:
+  GITHUB_REF: ${{ github.ref }}
+  BRANCH_DEV: ${{ vars.BRANCH_DEV }}
+  CLIENT_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:client
+  CLIENT_IP: ${{ vars.CLIENT_IP }}
+  DATABASE_IP: ${{ vars.DATABASE_IP }}
+  DATABASE_NAME: ${{ vars.DATABASE_NAME }}
+  DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+  DATABASE_PASSWORD_SALT: ${{ secrets.DATABASE_PASSWORD_SALT }}
+  DATABASE_PORT: ${{ vars.DATABASE_PORT }}
+  DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+  DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
+  DOCKER_NETWORK_GATEWAY: ${{ vars.DOCKER_NETWORK_GATEWAY }}
+  DOCKER_NETWORK_IP_RANGE: ${{ vars.DOCKER_NETWORK_IP_RANGE }}
+  DOCKER_NETWORK_SUBNET: ${{ vars.DOCKER_NETWORK_SUBNET }}
+  NGINX_PORT: ${{ vars.NGINX_PORT }}
+  SERVER_HOST_HTTP: ${{ secrets.SERVER_HOST_HTTP }}
+  SERVER_HOST_WS: ${{ secrets.SERVER_HOST_WS }}
+  SERVER_IP: ${{ vars.SERVER_IP }}
+  SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
+  SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+  SSH_PORT: ${{ secrets.SSH_PORT }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+jobs:
+  check:
+    name: Check files
+    outputs:
+      delta: ${{ steps.check.outputs.delta }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Check modified client source files
+        id: check
+        run: |
+          TEMP_FILE="files"
+          PACKAGES_DIR="packages/"
+          CLIENT_DIR="client/"
+          SOURCE_ROOT="src/"
+
+          git diff --name-only $BRANCH_DEV HEAD > $TEMP_FILE
+          while IFS= read -r file; do
+            echo $(echo "$file" | grep $PACKAGES_DIR$CLIENT_DIR$SOURCE_ROOT)
+            if [[ $(echo "$file" | grep $PACKAGES_DIR$CLIENT_DIR$SOURCE_ROOT) ]]; then
+              echo "::set-output name=delta::true"
+              break;
+            fi
+          done < $TEMP_FILE
+          rm $TEMP_FILE
+
+  ci:
+    name: Client CI
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.delta == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create Docker network
+        run: |
+          docker network create \
+            --driver bridge \
+            --subnet $DOCKER_NETWORK_SUBNET \
+            --gateway $DOCKER_NETWORK_GATEWAY \
+            --ip-range $DOCKER_NETWORK_IP_RANGE \
+            $DOCKER_NETWORK
+
+      - name: Compose client test
+        run: docker compose --verbose --file docker/docker-compose.test.yml --profile client up --abort-on-container-exit
+
+      - name: Login to DockerHub registry
+        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+
+      - name: Push test client image
+        if: github.ref != 'refs/heads/master'
+        run: docker push $CLIENT_IMAGE
+
+  cd:
+    name: Client CD
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    needs: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build production client image
+        run: |
+          docker build \
+            --file docker/configs/client/Dockerfile.prod \
+            --tag "${CLIENT_IMAGE}-prod" \
+            --build-arg NGINX_PORT=$NGINX_PORT \
+            .
+
+      - name: Login to DockerHub registry
+        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+
+      - name: Push production database image
+        run: docker push "${CLIENT_IMAGE}-prod"
+
+      - name: Pull and run client image on remote host
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          CLIENT_CONTAINER: client
+          CLIENT_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:client
+          CLIENT_IP: ${{ vars.CLIENT_IP }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
+          NGINX_PORT: ${{ vars.NGINX_PORT }}
+          SERVER_IP: ${{ vars.SERVER_IP }}
+          SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
+          SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
+        with:
+          host: $SSH_HOST
+          port: $SSH_PORT
+          username: $SSH_USERNAME
+          password: $SSH_PASSWORD
+          envs:
+            CLIENT_CONTAINER,
+            CLIENT_IMAGE,
+            CLIENT_IMAGE_PROD,
+            DOCKERHUB_PASSWORD,
+            DOCKERHUB_USERNAME,
+            DOCKER_NETWORK,
+            NGINX_PORT,
+            OLD_IMAGE,
+            SERVER_IP,
+            CLIENT_IP,
+            SERVER_PORT_HTTP,
+            SERVER_PORT_WS
+          script: |
+            set -e
+            export CLIENT_CONTAINER=$CLIENT_CONTAINER
+            export CLIENT_IMAGE=$CLIENT_IMAGE
+            export CLIENT_IMAGE_PROD="${CLIENT_IMAGE}-prod"
+            export CLIENT_IP=$CLIENT_IP
+            export DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD
+            export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
+            export DOCKER_NETWORK=$DOCKER_NETWORK
+            export NGINX_PORT=$NGINX_PORT
+            export SERVER_HOST_HTTP=$SERVER_HOST_HTTP
+            export SERVER_HOST_WS=$SERVER_HOST_WS
+            export SERVER_IP=$SERVER_IP
+            export SERVER_PORT_HTTP=$SERVER_PORT_HTTP
+            export SERVER_PORT_WS=$SERVER_PORT_WS
+            export OLD_IMAGE=$(docker images -q $CLIENT_IMAGE_PROD)$(echo "fallback")
+            
+            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+            docker pull $CLIENT_IMAGE_PROD
+
+            docker stop $CLIENT_CONTAINER || true
+            docker container rm -f $CLIENT_CONTAINER
+            docker image rm -f $OLD_IMAGE
+            
+            command="docker run -dit \
+              --restart unless-stopped \
+              --publish $NGINX_PORT:$NGINX_PORT \
+              --name $CLIENT_CONTAINER \
+              --net $DOCKER_NETWORK \
+              --ip $CLIENT_IP \
+              --env NGINX_PORT \
+              --env SERVER_HOST_HTTP \
+              --env SERVER_HOST_WS \
+              --env SERVER_IP \
+              --env SERVER_PORT_HTTP \
+              --env SERVER_PORT_WS \
+              $CLIENT_IMAGE_PROD"
+            echo $command
+            eval $command
+            docker ps

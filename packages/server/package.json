@@ -1,0 +1,40 @@
+{
+  "name": "server",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "nest build",
+    "start:prod": "node dist/index",
+    "start": "nest start",
+    "start:dev": "yarn start --watch",
+    "start:debug": "yarn start:dev --debug",
+    "format": "prettier --write src/",
+    "lint": "eslint --cache src/",
+    "lint:fix": "eslint --fix src/",
+    "test": "jest --passWithNoTests",
+    "test:watch": "yarn test --watch",
+    "test:coverage": "yarn test --coverage",
+    "pre-commit": "lint-staged",
+    "pre-push": "yarn lint:fix && yarn test --bail=1 && yarn format"
+  },
+  "dependencies": {
+    "@nestjs/axios": "^3.0.0",
+    "@nestjs/common": "^9.4.3",
+    "@nestjs/config": "^3.0.0",
+    "@nestjs/core": "^9.4.3",
+    "@nestjs/platform-express": "^9.4.3",
+    "@nestjs/platform-socket.io": "^10.2.1",
+    "@nestjs/swagger": "^7.1.7",
+    "@nestjs/terminus": "^10.0.1",
+    "@nestjs/typeorm": "^10.0.0",
+    "@nestjs/websockets": "^10.2.1",
+    "bcrypt": "^5.1.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "mysql2": "^3.5.2",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.17"
+  }
+}
