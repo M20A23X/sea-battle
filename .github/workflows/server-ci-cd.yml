@@ -1,0 +1,177 @@
+name: Server CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'master', 'dev' ]
+    paths:
+      - '/packages/server/**'
+  pull_request:
+    branches: [ 'master', 'dev' ]
+    paths:
+      - '/packages/server/**'
+
+env:
+  GITHUB_REF: ${{ github.ref }}
+  CLIENT_IP: ${{ vars.CLIENT_IP }}
+  DATABASE_IP: ${{ vars.DATABASE_IP }}
+  DATABASE_NAME: ${{ vars.DATABASE_NAME }}
+  DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+  DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+  DATABASE_PASSWORD_SALT: ${{ secrets.DATABASE_PASSWORD_SALT }}
+  DATABASE_PORT: ${{ vars.DATABASE_PORT }}
+  DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
+  DOCKER_NETWORK_GATEWAY: ${{ vars.DOCKER_NETWORK_GATEWAY }}
+  DOCKER_NETWORK_IP_RANGE: ${{ vars.DOCKER_NETWORK_IP_RANGE }}
+  DOCKER_NETWORK_SUBNET: ${{ vars.DOCKER_NETWORK_SUBNET }}
+  NGINX_PORT: ${{ vars.NGINX_PORT }}
+  SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
+  SERVER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:server
+  SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+  SSH_PORT: ${{ secrets.SSH_PORT }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+jobs:
+  ci:
+    name: Server CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create Docker network
+        run: |
+          docker network create \
+            --driver bridge \
+            --subnet $DOCKER_NETWORK_SUBNET \
+            --gateway $DOCKER_NETWORK_GATEWAY \
+            --ip-range $DOCKER_NETWORK_IP_RANGE \
+            $DOCKER_NETWORK
+
+      - name: Build test server image
+        run: |
+          docker build --file docker/configs/server/Dockerfile.test --tag "${SERVER_IMAGE}-test" .
+
+      - name: Login to DockerHub registry
+        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+
+      - name: Compose server test
+        run: docker compose --verbose --file docker/docker-compose.test.yml --profile backend up --abort-on-container-exit
+
+      - name: Push test server image
+        if: github.ref != 'refs/heads/master'
+        run: |
+          docker image tag "${SERVER_IMAGE}-test" $SERVER_IMAGE
+          docker push $SERVER_IMAGE
+
+  cd:
+    name: Server CD
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    needs: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build production server image
+        run: |
+          docker build \
+            --file docker/configs/server/Dockerfile.prod \
+            --tag "${SERVER_IMAGE}-prod" \
+            --build-arg SERVER_PORT_HTTP=$SERVER_PORT_HTTP \
+            --build-arg SERVER_PORT_WS=$SERVER_PORT_WS \
+            .
+
+      - name: Login to DockerHub registry
+        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+
+      - name: Push production database image
+        run: docker push "${SERVER_IMAGE}-prod"
+
+      - name: Pull and run server image on remote host
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          SERVER_CONTAINER: server
+          DATABASE_IP: ${{ vars.DATABASE_IP }}
+          DATABASE_NAME: ${{ vars.DATABASE_NAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_PASSWORD_SALT: ${{ secrets.DATABASE_PASSWORD_SALT }}
+          DATABASE_PORT: ${{ vars.DATABASE_PORT }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
+          SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
+          SERVER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:server
+          SERVER_IP: ${{ vars.SERVER_IP }}
+          SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
+        with:
+          host: $SSH_HOST
+          port: $SSH_PORT
+          username: $SSH_USERNAME
+          password: $SSH_PASSWORD
+          envs:
+            DATABASE_IP,
+            DATABASE_NAME,
+            DATABASE_PASSWORD,
+            DATABASE_PASSWORD_SALT,
+            DATABASE_PORT,
+            DATABASE_USERNAME,
+            DOCKERHUB_PASSWORD,
+            DOCKERHUB_USERNAME,
+            DOCKER_NETWORK,
+            OLD_IMAGE,
+            SERVER_CONTAINER,
+            SERVER_PORT_HTTP,
+            SERVER_IMAGE,
+            SERVER_IMAGE_PROD,
+            SERVER_IP,
+            SERVER_PORT_WS
+          script: |
+            set -e
+            export DATABASE_IP=$DATABASE_IP
+            export DATABASE_NAME=$DATABASE_NAME
+            export DATABASE_PASSWORD=$DATABASE_PASSWORD
+            export DATABASE_PASSWORD_SALT=$DATABASE_PASSWORD_SALT
+            export DATABASE_PORT=$DATABASE_PORT
+            export DATABASE_USERNAME=$DATABASE_USERNAME
+            export DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD
+            export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
+            export DOCKER_NETWORK=$DOCKER_NETWORK
+            export SERVER_CONTAINER=$SERVER_CONTAINER
+            export SERVER_PORT_HTTP=$SERVER_PORT_HTTP
+            export SERVER_IMAGE=$SERVER_IMAGE
+            export SERVER_IMAGE_PROD="${SERVER_IMAGE}-prod"
+            export SERVER_IP=$SERVER_IP
+            export SERVER_PORT_WS=$SERVER_PORT_WS
+            export OLD_IMAGE=$(docker images -q $SERVER_IMAGE_PROD)$(echo "fallback")
+            
+            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+            docker pull $SERVER_IMAGE_PROD
+
+            docker stop $SERVER_CONTAINER || true
+            docker container rm -f $SERVER_CONTAINER
+            docker image rm -f $OLD_IMAGE
+            
+            command="docker run -dit \
+              --restart unless-stopped \
+              --publish $SERVER_PORT_HTTP:$SERVER_PORT_HTTP \
+              --publish $SERVER_PORT_WS:$SERVER_PORT_WS \
+              --name $SERVER_CONTAINER \
+              --net $DOCKER_NETWORK \
+              --ip $SERVER_IP \
+              --env DATABASE_IP \
+              --env DATABASE_NAME \
+              --env DATABASE_PASSWORD \
+              --env DATABASE_PASSWORD_SALT \
+              --env DATABASE_PORT \
+              --env DATABASE_USERNAME \
+              --env SERVER_PORT_HTTP \
+              --env SERVER_PORT_WS \
+              $SERVER_IMAGE_PROD"
+            echo $command
+            eval $command
+            docker ps

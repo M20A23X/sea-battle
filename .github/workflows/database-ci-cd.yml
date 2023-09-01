@@ -1,0 +1,157 @@
+name: Database CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'master', 'dev' ]
+    paths:
+      - '/database/**'
+  pull_request:
+    branches: [ 'master', 'dev' ]
+    paths:
+      - '/database/**'
+
+env:
+  DATABASE_CONTAINER: database
+  HEALTH_CHECK_TIMEOUT: 60
+  DATABASE_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:database
+  DATABASE_IP: ${{ vars.DATABASE_IP }}
+  DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+  DATABASE_PORT: ${{ vars.DATABASE_PORT }}
+  DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+  DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
+  DOCKER_NETWORK_GATEWAY: ${{ vars.DOCKER_NETWORK_GATEWAY }}
+  DOCKER_NETWORK_IP_RANGE: ${{ vars.DOCKER_NETWORK_IP_RANGE }}
+  DOCKER_NETWORK_SUBNET: ${{ vars.DOCKER_NETWORK_SUBNET }}
+  NGINX_PORT: ${{ vars.NGINX_PORT }}
+  SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
+  SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+  SSH_PORT: ${{ secrets.SSH_PORT }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+
+jobs:
+  ci:
+    name: Database CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create Docker network
+        run: |
+          docker network create \
+            --driver bridge \
+            --subnet $DOCKER_NETWORK_SUBNET \
+            --gateway $DOCKER_NETWORK_GATEWAY \
+            --ip-range $DOCKER_NETWORK_IP_RANGE \
+            $DOCKER_NETWORK
+
+      - name: Compose database test
+        run: |
+          docker compose --verbose --file docker/docker-compose.test.yml --profile database up --detach
+
+          timeout=$HEALTH_CHECK_TIMEOUT
+          while [ $(docker inspect --format "{{json .State.Health.Status }}" ${DATABASE_CONTAINER}-test | grep -wv "healthy") ]
+          do
+            if [[ $timeout < 0 ]]; then
+              echo "Timed out!"
+              exit 1;
+            fi
+            echo "Waiting for container healthy status..."
+            sleep 1
+            timeout=$(($timeout-1))
+          done
+
+          mysql -h 127.0.0.1 -u$DATABASE_USERNAME -p$DATABASE_PASSWORD || exit 1
+          docker stop $(docker ps -a -q)
+
+      - name: Login to DockerHub registry
+        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+
+      - name: Push test database image
+        if: github.ref != 'refs/heads/master'
+        run: |
+          docker image tag "${DATABASE_IMAGE}-test" $DATABASE_IMAGE
+          docker push $DATABASE_IMAGE
+
+  cd:
+    name: Database CD
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    needs: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build production database image
+        run: docker build --file docker/configs/Dockerfile.db --tag "${DATABASE_IMAGE}-prod" --build-arg DATABASE_PORT=$DATABASE_PORT .
+
+      - name: Login to DockerHub registry
+        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+
+      - name: Push production database image
+        run: docker push "${DATABASE_IMAGE}-prod"
+
+      - name: Pull and run database image on remote host
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          DATABASE_CONTAINER: database
+          DATABASE_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:database
+          DATABASE_IP: ${{ vars.DATABASE_IP }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_PORT: ${{ vars.DATABASE_PORT }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
+        with:
+          host: $SSH_HOST
+          port: $SSH_PORT
+          username: $SSH_USERNAME
+          password: $SSH_PASSWORD
+          envs:
+            DATABASE_CONTAINER,
+            DATABASE_IMAGE,
+            DATABASE_IMAGE_PROD,
+            DATABASE_IP,
+            DATABASE_PASSWORD,
+            DATABASE_PORT,
+            DOCKERHUB_PASSWORD,
+            DOCKERHUB_USERNAME,
+            DOCKER_NETWORK,
+            MYSQL_ROOT_PASSWORD,
+            OLD_IMAGE
+          script: |
+            set -e
+            export DATABASE_CONTAINER=$DATABASE_CONTAINER
+            export DATABASE_IMAGE_PROD="${DATABASE_IMAGE}-prod"
+            export DATABASE_IP=$DATABASE_IP
+            export DATABASE_PASSWORD=$DATABASE_PASSWORD
+            export DATABASE_PORT=$DATABASE_PORT
+            export DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD
+            export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
+            export DOCKER_NETWORK=$DOCKER_NETWORK
+            export MYSQL_ROOT_PASSWORD=$DATABASE_PASSWORD
+            export OLD_IMAGE=$(docker images -q $DATABASE_IMAGE_PROD)$(echo "fallback")
+            
+            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+            docker pull $DATABASE_IMAGE_PROD
+
+            docker stop $DATABASE_CONTAINER || true
+            docker container rm -f $DATABASE_CONTAINER
+            docker image rm -f $OLD_IMAGE
+            
+            command="docker run -dit \
+              --publish $DATABASE_PORT:$DATABASE_PORT \
+              --restart unless-stopped \
+              --name $DATABASE_CONTAINER \
+              --net $DOCKER_NETWORK \
+              --ip $DATABASE_IP \
+              --env MYSQL_ROOT_PASSWORD \
+              $DATABASE_IMAGE_PROD"
+            echo $command
+            eval $command
+            docker ps
