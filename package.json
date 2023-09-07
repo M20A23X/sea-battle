@@ -10,7 +10,7 @@
     "prepare": "husky install",
     "clean": "lerna clean -y",
     "clean:build": "rm -rf ./packages/**/*.tsbuildinfo ./packages/**/dist/",
-    "build:shared": "tsc --build ./packages/shared/",
+    "build:shared": "yarn clean:build && tsc --build ./packages/shared/",
     "watch:shared": "tsc --watch --project ./packages/shared/",
     "build": "yarn build:shared && lerna run build",
     "start:prod": "lerna run start:prod",
@@ -19,8 +19,8 @@
     "start:debug": "concurrently \"yarn watch:shared\" \"lerna run start:debug",
     "test": "yarn build:shared && lerna run test",
     "test:watch": "concurrently \"yarn watch:shared\" \"lerna run test:watch",
-    "pre-commit": "lerna run pre-commit",
-    "pre-push": "lerna run pre-push"
+    "pre-commit": "yarn build:shared && lerna run pre-commit",
+    "pre-push": "yarn build:shared && lerna run pre-push"
   },
   "repository": {
     "type": "git",
