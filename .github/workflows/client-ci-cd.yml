@@ -141,6 +141,7 @@ jobs:
             DOCKERHUB_USERNAME,
             DOCKER_NETWORK,
             NGINX_PORT,
+            NODE_ENV,
             OLD_IMAGE,
             SERVER_IP,
             CLIENT_IP,
@@ -156,6 +157,7 @@ jobs:
             export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
             export DOCKER_NETWORK=$DOCKER_NETWORK
             export NGINX_PORT=$NGINX_PORT
+            export NODE_ENV=prod
             export SERVER_HOST_HTTP=$SERVER_HOST_HTTP
             export SERVER_HOST_WS=$SERVER_HOST_WS
             export SERVER_IP=$SERVER_IP
@@ -177,6 +179,7 @@ jobs:
               --net $DOCKER_NETWORK \
               --ip $CLIENT_IP \
               --env NGINX_PORT \
+              --env NODE_ENV \
               --env SERVER_HOST_HTTP \
               --env SERVER_HOST_WS \
               --env SERVER_IP \
