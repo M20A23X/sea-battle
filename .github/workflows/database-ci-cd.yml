@@ -44,20 +44,8 @@ jobs:
 
       - name: Check modified database files
         id: check
-        run: |
-          TEMP_FILE="files"
-          DATABASE_DIR="database/"
-
-          echo "Checking for modified files in $DATABASE_DIR since the last commit on $BRANCH_DEV branch..."
-          git diff --name-only $BRANCH_DEV HEAD > $TEMP_FILE
-          while IFS= read -r file; do
-            echo $(echo "$file" | grep $DATABASE_DIR)
-            if [[ $(echo "$file" | grep $DATABASE_DIR) ]]; then
-              echo "::set-output name=delta::true"
-              break;
-            fi
-          done < $TEMP_FILE
-          rm $TEMP_FILE
+        shell: bash
+        run: bash scripts/check-files.sh database
 
   ci:
     name: Database CI
@@ -79,7 +67,7 @@ jobs:
 
       - name: Compose database test
         run: |
-          docker compose --verbose --file docker/docker-compose.test.yml --profile database up --detach
+          docker compose --verbose --file docker/docker-compose.test.yml --profile database up --build --detach
 
           timeout=$HEALTH_CHECK_TIMEOUT
           while [ $(docker inspect --format "{{json .State.Health.Status }}" ${DATABASE_CONTAINER}-test | grep -wv "healthy") ]

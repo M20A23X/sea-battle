@@ -12,7 +12,7 @@ import {
     TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 
-import { TPromiseResponse } from 'sharedtypes/requestResponse';
+import { TPromiseResponse } from 'shared/types/requestResponse';
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
 import {

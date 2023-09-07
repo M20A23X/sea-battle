@@ -12,7 +12,7 @@
     "format": "prettier --write src/",
     "lint": "eslint --cache src/",
     "lint:fix": "eslint --fix src/",
-    "test": "jest --passWithNoTests",
+    "test": "tsc --build ../shared/ && jest --passWithNoTests --runInBand",
     "test:watch": "yarn test --watch",
     "test:coverage": "yarn test --coverage",
     "pre-commit": "lint-staged",
@@ -23,6 +23,7 @@
     "@nestjs/common": "^9.4.3",
     "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^9.4.3",
+    "@nestjs/jwt": "^10.1.1",
     "@nestjs/platform-express": "^9.4.3",
     "@nestjs/platform-socket.io": "^10.2.1",
     "@nestjs/swagger": "^7.1.7",
@@ -35,6 +36,7 @@
     "mysql2": "^3.5.2",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.17"
+    "typeorm": "^0.3.17",
+    "uuid": "^9.0.0"
   }
 }

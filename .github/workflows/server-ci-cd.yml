@@ -45,22 +45,8 @@ jobs:
 
       - name: Check modified server source files
         id: check
-        run: |
-          TEMP_FILE="files"
-          PACKAGES_DIR="packages/"
-          SERVER_DIR="server/"
-          SOURCE_ROOT="src/"
-          
-          echo "Checking for modified files in $PACKAGES_DIR$SERVER_DIR$SOURCE_ROOT since the last commit on $BRANCH_DEV branch..."
-          git diff --name-only $BRANCH_DEV HEAD > $TEMP_FILE
-          while IFS= read -r file; do
-            echo $(echo "$file" | grep $PACKAGES_DIR$SERVER_DIR$SOURCE_ROOT)
-            if [[ $(echo "$file" | grep $PACKAGES_DIR$SERVER_DIR$SOURCE_ROOT) ]]; then
-              echo "::set-output name=delta::true"
-              break;
-            fi
-          done < $TEMP_FILE
-          rm $TEMP_FILE
+        shell: bash
+        run: bash scripts/check-files.sh server
 
   ci:
     name: Server CI
@@ -80,14 +66,11 @@ jobs:
             --ip-range $DOCKER_NETWORK_IP_RANGE \
             $DOCKER_NETWORK
 
-      - name: Build test server image
-        run: docker build --file docker/configs/server/Dockerfile.test --tag "$SERVER_IMAGE" .
-
       - name: Login to DockerHub registry
         run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
 
       - name: Compose server test
-        run: docker compose --verbose --file docker/docker-compose.test.yml --profile backend up --abort-on-container-exit
+        run: docker compose --verbose --file docker/docker-compose.test.yml --profile backend up --build --abort-on-container-exit
 
       - name: Push test server image
         if: github.ref != 'refs/heads/master'
