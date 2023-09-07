@@ -149,6 +149,7 @@ jobs:
             DOCKERHUB_PASSWORD,
             DOCKERHUB_USERNAME,
             DOCKER_NETWORK,
+            NODE_ENV,
             OLD_IMAGE,
             SERVER_CONTAINER,
             SERVER_PORT_HTTP,
@@ -167,6 +168,7 @@ jobs:
             export DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD
             export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
             export DOCKER_NETWORK=$DOCKER_NETWORK
+            export NODE_ENV=prod
             export SERVER_CONTAINER=$SERVER_CONTAINER
             export SERVER_PORT_HTTP=$SERVER_PORT_HTTP
             export SERVER_IMAGE=$SERVER_IMAGE
@@ -195,6 +197,7 @@ jobs:
               --env DATABASE_PASSWORD_SALT \
               --env DATABASE_PORT \
               --env DATABASE_USERNAME \
+              --env NODE_ENV \
               --env SERVER_PORT_HTTP \
               --env SERVER_PORT_WS \
               $SERVER_IMAGE_PROD"
