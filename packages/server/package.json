@@ -12,11 +12,12 @@
     "format": "prettier --write src/",
     "lint": "eslint --cache src/",
     "lint:fix": "eslint --fix src/",
-    "test": "tsc --build ../shared/ && jest --passWithNoTests --runInBand",
+    "test": "jest --passWithNoTests --runInBand --detectOpenHandles",
     "test:watch": "yarn test --watch",
+    "test:staged": "yarn test --no-cache --bail=1",
     "test:coverage": "yarn test --coverage",
     "pre-commit": "lint-staged",
-    "pre-push": "yarn lint:fix && yarn test --bail=1 && yarn format"
+    "pre-push": "yarn lint && yarn test:staged"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.0",
