@@ -18,19 +18,19 @@
   },
   "scripts": {
     "build": "react-app-rewired build",
-    "start:dev": "react-app-rewired start",
-    "start:debug": "yarn start",
     "format": "prettier --write src/",
     "lint": "eslint --cache src/",
     "lint:fix": "eslint --fix src/",
+    "pre-commit": "lint-staged",
+    "pre-push": "yarn lint && yarn slint && yarn test:quick",
     "slint": "stylelint --cache --allow-empty-input src/",
     "slint:fix": "stylelint --fix --allow-empty-input src/",
+    "start:debug": "yarn start",
+    "start:dev": "react-app-rewired start",
     "test": "jest --passWithNoTests",
-    "test:staged": "yarn test --no-cache --bail=1",
-    "test:watch": "yarn test --watch",
     "test:coverage": "yarn test --coverage",
-    "pre-commit": "lint-staged",
-    "pre-push": "yarn lint:fix && yarn slint:fix && yarn test --bail=1 && yarn format"
+    "test:quick": "yarn test --forceExit --no-cache --bail=1",
+    "test:watch": "yarn test --watch"
   },
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.5",
