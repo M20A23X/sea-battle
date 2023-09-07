@@ -3,6 +3,8 @@ WORKDIR /usr/src/app/
 
 RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
     --mount=type=bind,source=lerna.json,target=lerna.json \
+    --mount=type=bind,source=.yarnrc,target=.yarnrc \
+    --mount=type=bind,source=.yarn,target=.yarn \
     --mount=type=bind,source=package.json,rw,target=package.json \
     --mount=type=bind,source=packages/server/package.json,target=packages/server/package.json \
     --mount=type=bind,source=yarn.lock,target=yarn.lock \
