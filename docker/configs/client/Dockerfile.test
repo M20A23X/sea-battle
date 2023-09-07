@@ -25,4 +25,4 @@ FROM node:18
 WORKDIR /usr/src/app/
 
 COPY --from=base /usr/src/app/ .
-CMD ["yarn", "test", "--scope=client"]
+CMD ["yarn", "test:quick", "--scope client"]
