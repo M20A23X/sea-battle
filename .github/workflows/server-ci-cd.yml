@@ -23,6 +23,7 @@ env:
   DOCKER_NETWORK_GATEWAY: ${{ vars.DOCKER_NETWORK_GATEWAY }}
   DOCKER_NETWORK_IP_RANGE: ${{ vars.DOCKER_NETWORK_IP_RANGE }}
   DOCKER_NETWORK_SUBNET: ${{ vars.DOCKER_NETWORK_SUBNET }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
   NGINX_PORT: ${{ vars.NGINX_PORT }}
   SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
   SERVER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:server
@@ -113,6 +114,7 @@ jobs:
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
           SERVER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:server
           SERVER_IP: ${{ vars.SERVER_IP }}
@@ -132,6 +134,7 @@ jobs:
             DOCKERHUB_PASSWORD,
             DOCKERHUB_USERNAME,
             DOCKER_NETWORK,
+            JWT_SECRET,
             NODE_ENV,
             OLD_IMAGE,
             SERVER_CONTAINER,
@@ -151,6 +154,7 @@ jobs:
             export DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD
             export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
             export DOCKER_NETWORK=$DOCKER_NETWORK
+            export JWT_SECRET=$JWT_SECRET
             export NODE_ENV=prod
             export SERVER_CONTAINER=$SERVER_CONTAINER
             export SERVER_PORT_HTTP=$SERVER_PORT_HTTP

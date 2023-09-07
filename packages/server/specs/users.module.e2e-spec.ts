@@ -1,7 +1,4 @@
-import { HttpStatus, ValidationError } from '@nestjs/common';
-import { NestApplication } from '@nestjs/core';
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule } from '@nestjs/config';
+import { HttpStatus, INestApplication, ValidationError } from '@nestjs/common';
 
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -13,6 +10,7 @@ import { IUser, IUserCreateData, IUserPublicData } from 'shared/types/user';
 import { Res } from 'shared/types/requestResponse';
 
 import { getQuery } from 'shared/utils/getQuery.util';
+import { initApp } from './utils/initApp';
 import { initializeDataSource, truncateTable } from './utils/dataSource';
 import { createUsers, createUsersCreateDTO, insertUsers } from './utils/users';
 import {
@@ -30,18 +28,13 @@ import {
 import { MIME_TYPE } from 'static/web';
 import { USERS_SCHEMA } from 'static/format';
 
-import { DataSourceProvider } from 'configs/dataSource.config';
-
 import { User } from 'modules/user/models/entities/user.entity';
 import { UserDTO } from 'modules/user/models/dtos/user.dto';
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
 import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
 import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
 import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
-
-import { UsersRepository } from 'repositories/users.repository';
 import { IUsersService, UsersService } from 'services/users.service';
-import { UsersController } from 'controllers/users.controller';
 
 const userDataArr: IUser[] = createUsers();
 const CREATE_ROUTE = '/users/create';
@@ -49,29 +42,19 @@ const UPDATE_ROUTE = '/users/update';
 const DELETE_ROUTE = '/users/delete';
 
 describe('Users module tests.', () => {
-    let app: NestApplication;
+    let app: INestApplication;
     let dataSource: DataSource;
     let usersService: IUsersService;
 
     ///--- Prepare ---///
 
     beforeAll(async () => {
-        const moduleRef: TestingModule = await Test.createTestingModule({
-            imports: [ConfigModule.forRoot({ isGlobal: true })],
-            controllers: [UsersController],
-            providers: [UsersService, UsersRepository, DataSourceProvider],
-        }).compile();
-
+        const [initializedApp, moduleRef] = await initApp();
+        app = initializedApp;
         dataSource = moduleRef.get<DataSource>(DataSource);
         usersService = moduleRef.get<IUsersService>(UsersService);
-
-        app = moduleRef.createNestApplication();
-        await app.init();
+        await initializeDataSource(dataSource);
     }, HOOK_TIMEOUT);
-    beforeEach(
-        async () => await initializeDataSource(dataSource),
-        HOOK_TIMEOUT,
-    );
     afterEach(async () => await truncateTable(dataSource, User), HOOK_TIMEOUT);
     afterAll(async () => await dataSource.destroy(), HOOK_TIMEOUT);
 
@@ -107,10 +90,11 @@ describe('Users module tests.', () => {
                 const errors: ValidationError[] = await validate(dto);
                 const expectedRes: number = expectedResArr[index];
 
-                if (errors.length) console.info('Validation errors:', errors);
-                if (expectedRes)
+                if (expectedRes) {
+                    if (errors.length < expectedRes)
+                        console.info('Validation errors:', errors);
                     expect(errors.length).toBeGreaterThanOrEqual(expectedRes);
-                else expect(errors.length).toStrictEqual(expectedRes);
+                } else expect(errors.length).toStrictEqual(expectedRes);
             }
         },
         HOOK_TIMEOUT,
