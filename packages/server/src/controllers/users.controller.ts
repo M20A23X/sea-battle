@@ -6,6 +6,7 @@ import {
     Post,
     Put,
     Query,
+    Res,
 } from '@nestjs/common';
 
 import {
@@ -13,12 +14,17 @@ import {
     ApiConsumes,
     ApiOperation,
     ApiProduces,
+    ApiQuery,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 
-import { TPromiseResponse, TResponse } from 'shared/types/requestResponse';
+import { ControllerRes, ServiceRes } from 'shared/types/requestResponse';
 import { IUserPublicData } from 'shared/types/user';
 import { TUserReadDbQualifier } from 'repositories/users.repository';
 
+import { requireSendControllerRes } from 'utils/res.util';
+
+import { User } from 'modules/user/models/entities/user.entity';
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
 import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
 import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
@@ -26,58 +32,94 @@ import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
 
 import { UsersService } from 'services/users.service';
 
-import { FALLBACK } from 'static/database';
+import { MIME_TYPE } from 'static/web';
 
 export interface IUsersController {
-    postCreateUser(body: UserCreateDTO): Promise<TResponse>;
+    postCreateUser(body: UserCreateDTO, res: Response): ControllerRes;
 
-    getReadUsers(query: UsersReadDTO): TPromiseResponse<IUserPublicData[]>;
+    getReadUsers(
+        query: UsersReadDTO,
+        res: Response,
+    ): ControllerRes<IUserPublicData[]>;
 
-    putUpdateUser(body: UserUpdateDTO): TPromiseResponse<IUserPublicData>;
+    putUpdateUser(
+        body: UserUpdateDTO,
+        res: Response,
+    ): ControllerRes<IUserPublicData>;
 
-    deleteUser(query: UserDeleteDTO): TPromiseResponse;
+    deleteUser(query: UserDeleteDTO, res: Response): ControllerRes;
 }
 
 @Controller('users')
 export class UsersController implements IUsersController {
     constructor(private readonly _usersService: UsersService) {}
 
+    ///--- Private ---///
+    private readonly _sendRes = requireSendControllerRes(User.name);
+
+    ///--- Public ---///
     @Post('/create')
     @ApiBody({ type: [UserCreateDTO] })
-    @ApiConsumes('application/json')
-    @ApiProduces('application/json')
+    @ApiConsumes(MIME_TYPE.applicationJson)
+    @ApiProduces(MIME_TYPE.applicationJson)
     @ApiOperation({ summary: 'Create new user' })
-    async postCreateUser(@Body() body: UserCreateDTO): TPromiseResponse {
-        return this._usersService.createUser(body.user);
+    async postCreateUser(
+        @Body() body: UserCreateDTO,
+        @Res() res: Response,
+    ): ControllerRes {
+        const serviceRes: ServiceRes = await this._usersService.createUser(
+            body.user,
+        );
+        return this._sendRes(serviceRes, res);
     }
 
     @Get('/read')
+    @ApiQuery({ type: [UsersReadDTO] })
+    @ApiProduces(MIME_TYPE.applicationJson)
+    @ApiOperation({ summary: 'Read users' })
     async getReadUsers(
         @Query() query: UsersReadDTO,
-    ): TPromiseResponse<IUserPublicData[]> {
+        @Res() res: Response,
+    ): ControllerRes<IUserPublicData[]> {
         const readQualifier: TUserReadDbQualifier = query?.username
             ? query.username
             : query?.userUUID
             ? query.userUUID
             : {
-                  startId: query?.startId || 0,
-                  endId: query?.endId || FALLBACK.maxReadAmount,
+                  startId: query?.startId,
+                  endId: query?.endId,
               };
-        return this._usersService.readUsers(readQualifier);
+        const serviceRes: ServiceRes<IUserPublicData[]> =
+            await this._usersService.readUsers(readQualifier, false);
+        return this._sendRes(serviceRes, res);
     }
 
     @Put('/update')
+    @ApiBody({ type: [UserUpdateDTO] })
+    @ApiConsumes(MIME_TYPE.applicationJson)
+    @ApiProduces(MIME_TYPE.applicationJson)
+    @ApiOperation({ summary: 'Update user' })
     async putUpdateUser(
         @Body() body: UserUpdateDTO,
-    ): TPromiseResponse<IUserPublicData> {
-        return this._usersService.updateUser(body.user);
+        @Res() res: Response,
+    ): ControllerRes<IUserPublicData> {
+        const serviceRes: ServiceRes<IUserPublicData> =
+            await this._usersService.updateUser(body.user);
+        return this._sendRes(serviceRes, res);
     }
 
     @Delete('/delete')
-    async deleteUser(@Query() query: UserDeleteDTO): TPromiseResponse {
-        return this._usersService.deleteUser(
+    @ApiQuery({ type: [UserDeleteDTO] })
+    @ApiProduces(MIME_TYPE.applicationJson)
+    @ApiOperation({ summary: 'Delete user' })
+    async deleteUser(
+        @Query() query: UserDeleteDTO,
+        @Res() res: Response,
+    ): ControllerRes {
+        const serviceRes: ServiceRes = await this._usersService.deleteUser(
             query.userUUID,
             query.currentPassword,
         );
+        return this._sendRes(serviceRes, res);
     }
 }

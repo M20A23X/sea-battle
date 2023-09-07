@@ -5,9 +5,13 @@ import { DataSource } from 'typeorm';
 import { EnvError } from 'exceptions/EnvError';
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
-import { DATABASE_IP, DATABASE_NAME, DATABASE_PORT } from 'static/common';
-
-import { User } from 'modules/user/models/entities/user.entity';
+import { ENTITIES } from 'static/entities';
+import {
+    DATABASE_IP,
+    DATABASE_NAME,
+    DATABASE_PORT,
+    NODE_ENV_PROD,
+} from 'static/common';
 
 export const DataSourceProvider: Provider = {
     provide: DataSource,
@@ -23,8 +27,8 @@ export const DataSourceProvider: Provider = {
             username: process.env.DATABASE_USERNAME,
             password: process.env.DATABASE_PASSWORD,
             database: process.env.DATABASE_NAME || DATABASE_NAME,
-            entities: [User],
-            synchronize: process.env.NODE_ENV !== 'prod',
+            entities: ENTITIES,
+            synchronize: process.env.NODE_ENV !== NODE_ENV_PROD,
         });
         loggerService.debug(dataSource.options);
 
@@ -33,6 +37,9 @@ export const DataSourceProvider: Provider = {
                 process.env.DATABASE_PASSWORD_SALT;
             if (!databasePasswordSalt)
                 throw new EnvError('Database password salt is not set!');
+
+            const jwtSecret: string | undefined = process.env.JWT_SECRET;
+            if (!jwtSecret) throw new EnvError('JWT secret is not set!');
 
             await dataSource.initialize();
             if (dataSource.isInitialized)
