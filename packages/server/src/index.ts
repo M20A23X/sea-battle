@@ -6,14 +6,14 @@ import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from 'modules/app.module';
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
-import { PORT } from 'static/common';
+import { NODE_ENV_PROD, PORT } from 'static/common';
 
 import { validationConfig } from 'configs/validation.config';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
         logger:
-            process.env.NODE_ENV === 'dev'
+            process.env.NODE_ENV !== NODE_ENV_PROD
                 ? ['log', 'error', 'warn', 'debug', 'verbose']
                 : ['log', 'error', 'warn'],
     });

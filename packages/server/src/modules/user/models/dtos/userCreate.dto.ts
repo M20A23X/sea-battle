@@ -10,9 +10,9 @@ import { ApiProperty, OmitType } from '@nestjs/swagger';
 
 import { IUserCreateData, TUserReqDTO } from 'shared/types/user';
 
-import { IsEqualTo } from 'decorators/IsEqualTo';
+import { UserDTO } from './user.dto';
 
-import { UserDTO } from 'modules/user/models/dtos/user.dto';
+import { IsEqualTo } from 'decorators/IsEqualTo';
 
 export class UserCreateData
     extends OmitType(UserDTO, ['userUUID'] as const)

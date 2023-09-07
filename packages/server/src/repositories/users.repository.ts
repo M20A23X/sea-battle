@@ -19,14 +19,14 @@ import {
     IUsersReadData,
     IUserUpdateData,
 } from 'shared/types/user';
+import { FALLBACK, USERS_SCHEMA } from '../static/format';
 import { ILoggerService, LoggerService } from 'services/logger.service';
-import { User } from 'modules/user/models/entities/user.entity';
 
-import { USERS_SCHEMA } from 'static/database';
+import { User } from 'modules/user/models/entities/user.entity';
 
 export type TUserReadDbQualifier =
     | string
-    | Required<Pick<IUsersReadData, 'startId' | 'endId'>>;
+    | Pick<IUsersReadData, 'startId' | 'endId'>;
 export type TUserCreateDbData = Omit<IUserCreateData, 'passwordConfirm'>;
 export type TUserUpdateDbData = Omit<
     IUserUpdateData,
@@ -36,10 +36,11 @@ export type TUserUpdateDbData = Omit<
 export interface IUsersRepository {
     insertUser(data: TUserCreateDbData): Promise<void>;
 
-    readUsers(
+    readUsers<T extends boolean>(
         qualifier: TUserReadDbQualifier,
-        requirePrivate?: boolean,
-    ): Promise<Array<IUserPublicData | IUser>>;
+        requirePrivate: T,
+        precise: boolean,
+    ): Promise<Array<T extends true ? IUser : IUserPublicData>>;
 
     updateUser(data: TUserUpdateDbData): Promise<void>;
 
@@ -48,7 +49,7 @@ export interface IUsersRepository {
 
 @Injectable()
 export class UsersRepository
-    extends Repository<IUser>
+    extends Repository<User>
     implements IUsersRepository
 {
     constructor(@InjectDataSource() private _dataSource: DataSource) {
@@ -61,21 +62,22 @@ export class UsersRepository
     );
 
     ///--- Public ---///
-    async insertUser(iUserCreateData: TUserCreateDbData): Promise<void> {
+    public async insertUser(userCreateData: TUserCreateDbData): Promise<void> {
         const insertQuery: InsertQueryBuilder<IUser> = this.createQueryBuilder()
             .insert()
-            .values(iUserCreateData);
-        this._loggerService.debug(insertQuery.getQuery());
+            .values(userCreateData);
+        this._loggerService.debug(insertQuery.getQueryAndParameters());
         const insertRes: InsertResult = await insertQuery.execute();
         this._loggerService.debug(
             'New entity id: ' + JSON.stringify(insertRes.identifiers),
         );
     }
 
-    async readUsers(
+    public async readUsers<T extends boolean>(
         qualifier: TUserReadDbQualifier,
-        requirePrivate = false,
-    ): Promise<Array<IUserPublicData | IUser>> {
+        requirePrivate: T,
+        precise: boolean,
+    ): Promise<Array<T extends true ? IUser : IUserPublicData>> {
         const selectPart =
             'u.username, u.userUUID, u.imgUrl' +
             (requirePrivate ? ', u.userId, u.password' : '');
@@ -83,12 +85,15 @@ export class UsersRepository
             this.createQueryBuilder('u').select(selectPart);
         if (typeof qualifier === 'string') {
             const isUsername: boolean =
-                USERS_SCHEMA.username.format.test(qualifier);
+                USERS_SCHEMA.username.regex.test(qualifier);
+            const whereUsername: string = precise
+                ? '= :qualifier'
+                : `LIKE '%${qualifier}%'`;
             selectQuery = selectQuery.where(
                 isUsername
-                    ? `u.username LIKE :qualifier`
+                    ? `u.username ${whereUsername}`
                     : `u.userUUID = :qualifier`,
-                { qualifier: isUsername ? `%${qualifier}%` : qualifier },
+                { qualifier },
             );
         } else {
             const { startId, endId } = qualifier;
@@ -96,15 +101,15 @@ export class UsersRepository
                 'u.userId BETWEEN :startId AND :endId',
                 {
                     startId,
-                    endId,
+                    endId: endId ?? FALLBACK.maxReadAmount,
                 },
             );
         }
-        this._loggerService.debug(selectQuery.getQuery());
+        this._loggerService.debug(selectQuery.getQueryAndParameters());
         return selectQuery.execute();
     }
 
-    async updateUser(data: TUserUpdateDbData): Promise<void> {
+    public async updateUser(data: TUserUpdateDbData): Promise<void> {
         const { userUUID, ...dbData } = data;
         if (!Object.keys(dbData).length) return;
 
@@ -112,19 +117,19 @@ export class UsersRepository
             .update()
             .set(dbData)
             .where({ userUUID });
-        this._loggerService.debug(updateQuery.getQuery());
+        this._loggerService.debug(updateQuery.getQueryAndParameters());
 
         const updateRes: UpdateResult = await updateQuery.execute();
         this._loggerService.debug('Affected rows: ' + updateRes.affected);
     }
 
-    async deleteUser(uuid: string): Promise<void> {
+    public async deleteUser(uuid: string): Promise<void> {
         const deleteQuery: DeleteQueryBuilder<IUser> = this.createQueryBuilder(
             'u',
         )
             .delete()
             .where({ userUUID: uuid });
-        this._loggerService.debug(deleteQuery.getQuery());
+        this._loggerService.debug(deleteQuery.getQueryAndParameters());
 
         const deleteRes: DeleteResult = await deleteQuery.execute();
         this._loggerService.debug('Affected rows: ' + deleteRes.affected);
