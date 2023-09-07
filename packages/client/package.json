@@ -26,6 +26,7 @@
     "slint": "stylelint --cache --allow-empty-input src/",
     "slint:fix": "stylelint --fix --allow-empty-input src/",
     "test": "jest --passWithNoTests",
+    "test:staged": "yarn test --no-cache --bail=1",
     "test:watch": "yarn test --watch",
     "test:coverage": "yarn test --coverage",
     "pre-commit": "lint-staged",
