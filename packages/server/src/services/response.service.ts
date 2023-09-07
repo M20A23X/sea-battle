@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { QueryError } from 'mysql2';
-import { TResponse } from 'sharedtypes/requestResponse';
+import { TResponse } from 'shared/types/requestResponse';
 
 import { ILoggerService, LoggerService } from 'services/logger.service';
 

@@ -15,7 +15,7 @@ import {
     ApiProduces,
 } from '@nestjs/swagger';
 
-import { TPromiseResponse, TResponse } from 'sharedtypes/requestResponse';
+import { TPromiseResponse, TResponse } from 'shared/types/requestResponse';
 import { IUserPublicData } from 'shared/types/user';
 import { TUserReadDbQualifier } from 'repositories/users.repository';
 

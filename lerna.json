@@ -4,5 +4,6 @@
   "npmClient": "yarn",
   "packages": [
     "packages/*"
-  ]
+  ],
+  "verbose": true
 }

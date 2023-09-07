@@ -16,7 +16,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "commonjs",
+    "module": "NodeNext",
     "noEmit": false,
     "noFallthroughCasesInSwitch": false,
     "noImplicitAny": false,
@@ -36,8 +36,8 @@
       "*": [
         "*"
       ],
-      "shared*": [
-        "../../shared/src/*"
+      "shared/*": [
+        "../../shared/dist/src/*"
       ]
     }
   }

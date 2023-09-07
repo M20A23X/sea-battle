@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { TPromiseResponse, TResponse } from 'sharedtypes/requestResponse';
+import { TPromiseResponse, TResponse } from 'shared/types/requestResponse';
 import {
     IUser,
     IUserCreateData,
