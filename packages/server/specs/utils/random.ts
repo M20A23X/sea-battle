@@ -3,15 +3,11 @@ import { FIELD_LENGTH_RATIO } from '../static/globals';
 const CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.toLowerCase();
 
 const random = (max: number, min = 0): number =>
-    Math.trunc(Math.random() * (1 + max - min) + min);
+    Math.ceil(Math.random() * (max - min) + min);
 
-const randomString = (
-    max: number,
-    min = 0,
-    isIncorrectAllow = false,
-): string => {
+const randomString = (max: number, min = 0, allowIncorrect = false): string => {
     return new Array(
-        random((isIncorrectAllow ? FIELD_LENGTH_RATIO : 1) * max, min),
+        random((allowIncorrect ? FIELD_LENGTH_RATIO : 1) * max, min),
     )
         .fill(null)
         .map(() => CHARACTERS.charAt(random(CHARACTERS.length)))

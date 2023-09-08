@@ -1,4 +1,4 @@
-import { TRequest } from './requestResponse';
+import { Req } from './requestResponse';
 
 interface IUser {
     userId: number;
@@ -9,22 +9,26 @@ interface IUser {
 }
 
 type IUserPublicData = Omit<IUser, 'userId' | 'password'>;
-type TUserReqDTO<V> = TRequest<`user`, V>;
+type TUserReqDTO<V> = Req<`user`, V>;
 
 type IUserCreateData = Omit<IUser, 'userId' | 'userUUID'> & {
     passwordConfirm: string;
 };
-type IUsersReadData = Partial<
-    Pick<IUserUpdateData, 'userUUID' | 'username'>
-> & { startId?: number; endId?: number };
-type IUserUpdateData = Pick<IUser, 'userUUID'> &
-    Partial<Pick<IUser, 'username' | 'password' | 'imgUrl'>> &
-    Partial<Pick<IUserCreateData, 'passwordConfirm'>> & {
-        currentPassword: string;
-    };
+type IUserUpdateData = Pick<IUser, 'userUUID'> & {
+    currentPassword: string;
+} & Partial<
+        Pick<
+            IUserCreateData,
+            'username' | 'password' | 'imgUrl' | 'passwordConfirm'
+        >
+    >;
+type IUsersReadData = Partial<Pick<IUser, 'userUUID' | 'username'>> & {
+    startId: number;
+    endId?: number;
+};
 type IUserDeleteData = Pick<IUserUpdateData, 'userUUID' | 'currentPassword'>;
 
-export {
+export type {
     IUser,
     IUserPublicData,
     IUserCreateData,

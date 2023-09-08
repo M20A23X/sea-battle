@@ -12,19 +12,19 @@ import {
     TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 
-import { TPromiseResponse } from 'shared/types/requestResponse';
+import { ControllerRes } from 'shared/types/requestResponse';
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
 import {
-    DATABASE_HEALTHCHECK_TIMEOUT,
+    DATABASE_HEALTHCHECK_TIMEOUT_MS,
     DISK_THRESHOLD_PERCENT,
     MEM_HEAP_THRESHOLD,
     MEM_RSS_THRESHOLD,
 } from 'static/common';
 
 export interface IHealthController {
-    get(): TPromiseResponse<string>;
-    getCheckHealth(): TPromiseResponse<HealthCheckResult | unknown>;
+    get(): ControllerRes<string>;
+    getCheckHealth(): ControllerRes<HealthCheckResult | unknown>;
 }
 
 @Controller('/')
@@ -43,14 +43,14 @@ export class HealthController implements IHealthController {
 
     @Get('/')
     @ApiOperation({ summary: 'Check' })
-    async get(): TPromiseResponse<string> {
+    async get(): ControllerRes<string> {
         return { message: 'Check', payload: 'payload' };
     }
 
     @Get('/health')
     @ApiOperation({ summary: 'Check server health' })
     @HealthCheck()
-    async getCheckHealth(): TPromiseResponse<HealthCheckResult | unknown> {
+    async getCheckHealth(): ControllerRes<HealthCheckResult | unknown> {
         try {
             const healthRes: HealthCheckResult =
                 await this._healthServices.check([
@@ -67,7 +67,7 @@ export class HealthController implements IHealthController {
                         ),
                     () =>
                         this._dbIndicator.pingCheck('database ping', {
-                            timeout: DATABASE_HEALTHCHECK_TIMEOUT,
+                            timeout: DATABASE_HEALTHCHECK_TIMEOUT_MS,
                         }),
                     () =>
                         this._diskIndicator.checkStorage('storage', {
@@ -85,7 +85,10 @@ export class HealthController implements IHealthController {
                             MEM_HEAP_THRESHOLD,
                         ),
                 ]);
-            return { message: 'Success get health status', payload: healthRes };
+            return {
+                message: 'Successfully get health status',
+                payload: healthRes,
+            };
         } catch (error: unknown) {
             let message = 'Error check health!';
             if (error instanceof Error)

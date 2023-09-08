@@ -8,10 +8,11 @@ import {
 } from '@nestjs/swagger';
 
 import { IUserUpdateData, TUserReqDTO } from 'shared/types/user';
-import { UserCreateData } from 'modules/user/models/dtos/userCreate.dto';
-import { UserDTO } from 'modules/user/models/dtos/user.dto';
 
-import { USERS_SCHEMA } from 'static/database';
+import { USERS_SCHEMA } from '../../../../static/format';
+import { UserDTO } from './user.dto';
+
+import { UserCreateData } from 'modules/user/models/dtos/userCreate.dto';
 
 const { password } = USERS_SCHEMA;
 
@@ -32,7 +33,7 @@ export class UserUpdateData
     @ApiProperty()
     @IsString()
     @Length(password.minLength, password.maxLength)
-    @Matches(password.format, { message: password.errorMessage })
+    @Matches(password.regex, { message: password.errorMessage })
     public currentPassword: string;
 }
 

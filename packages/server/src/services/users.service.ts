@@ -1,35 +1,47 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { TPromiseResponse, TResponse } from 'shared/types/requestResponse';
+import {
+    ServiceCode,
+    ServicePromiseRes,
+    ServiceRes,
+} from 'shared/types/requestResponse';
 import {
     IUser,
     IUserCreateData,
     IUserPublicData,
     IUserUpdateData,
 } from 'shared/types/user';
-import {
-    IResponseService,
-    ResponseService,
-    TCrudType,
-} from 'services/response.service';
+
+import { LoggerService } from './logger.service';
+
+import { hashPassword } from 'utils/hashPassword.util';
+import { requireGetServiceRes } from 'utils/res.util';
+
+import { User } from 'modules/user/models/entities/user.entity';
+
 import {
     IUsersRepository,
     TUserReadDbQualifier,
     UsersRepository,
 } from 'repositories/users.repository';
 
-import { hashPassword } from 'utils/hashPassword.util';
-
 export interface IUsersService {
-    createUser(data: IUserCreateData): TPromiseResponse;
+    createUser(data: IUserCreateData): ServicePromiseRes;
 
-    readUsers(
+    readUsers<T extends boolean>(
         qualifier: TUserReadDbQualifier,
-    ): TPromiseResponse<IUserPublicData[]>;
+        requirePrivate: T,
+        precise?: boolean,
+    ): ServicePromiseRes<Array<T extends true ? IUser : IUserPublicData>>;
 
-    updateUser(data: IUserUpdateData): TPromiseResponse<IUserPublicData>;
+    updateUser(data: IUserUpdateData): ServicePromiseRes<IUserPublicData>;
 
-    deleteUser(uuid: string, currentPassword: string): TPromiseResponse;
+    deleteUser(uuid: string, currentPassword: string): ServicePromiseRes;
+
+    checkPassword(
+        user: string | IUser,
+        currentPassword: string,
+    ): ServicePromiseRes<boolean | null>;
 }
 
 @Injectable()
@@ -40,117 +52,135 @@ export class UsersService implements IUsersService {
     ) {}
 
     ///--- Private ---///
-    private readonly _resService: IResponseService = new ResponseService(
-        UsersService.name,
+    private readonly _requireGetRes = requireGetServiceRes(
+        User.name,
+        new LoggerService(UsersService.name),
     );
 
-    private async _checkCurrentPassword<P>(
-        uuid: string,
+    ///--- Public ---///
+    public async checkPassword(
+        user: string | IUser,
         currentPassword: string,
-        crudType: TCrudType,
-    ): Promise<TResponse<P> | void> {
-        const userData: IUser[] = (await this._userRepository.readUsers(
-            uuid,
-            true,
-        )) as IUser[];
-        if (!userData.length) {
-            return this._resService.getWarnRes(crudType, 'DOESNT_EXIST', {
-                UUID: uuid,
-            });
-        }
-        const { password }: IUser = userData[0] as IUser;
-        if (password !== hashPassword(currentPassword))
-            return this._resService.getWarnRes(crudType, 'INCORRECT_PASSWORD');
+    ): ServicePromiseRes<boolean | null> {
+        const getRes = this._requireGetRes('CHECK');
+        let checkUser: IUser;
+
+        if (typeof user === 'string') {
+            const readRes: ServiceRes<IUser[]> = await this.readUsers(
+                user,
+                true,
+            );
+            const [readUser]: IUser[] = readRes.payload || [];
+            if (!readUser || !readRes.isSuccess)
+                return getRes({ serviceCode: readRes.serviceCode });
+
+            checkUser = readUser;
+        } else checkUser = user;
+
+        const isEqual: boolean =
+            checkUser.password === hashPassword(currentPassword);
+
+        return getRes({
+            serviceCode: isEqual ? 'SUCCESS' : 'PASSWORDS_DONT_MATCH',
+            payload: isEqual,
+        });
     }
 
-    ///--- Public ---///
-    public async createUser(data: IUserCreateData): TPromiseResponse {
+    public async createUser(data: IUserCreateData): ServicePromiseRes {
+        const getRes = this._requireGetRes('CREATE');
         const { passwordConfirm: _, password, ...publicData } = data;
+        const { username } = data;
 
         try {
             await this._userRepository.insertUser({
                 ...publicData,
                 password: hashPassword(password),
             });
-
-            return this._resService.getSuccessRes('CREATE', {
-                username: data.username,
-            });
+            return getRes({ messageRaw: { username } });
         } catch (error: unknown) {
-            return this._resService.getWarnRes('CREATE', error);
+            return getRes({ error, messageRaw: { username } });
         }
     }
 
-    public async readUsers(
+    public async readUsers<T extends boolean>(
         qualifier: TUserReadDbQualifier,
-    ): TPromiseResponse<IUserPublicData[]> {
+        requirePrivate: T,
+        precise = false,
+    ): ServicePromiseRes<Array<T extends true ? IUser : IUserPublicData>> {
+        const getRes = this._requireGetRes('READ');
         try {
-            const selectRes: IUserPublicData[] =
-                await this._userRepository.readUsers(qualifier);
-            return this._resService.getSuccessRes(
-                'READ',
-                { amount: selectRes.length },
-                selectRes,
-            );
+            const selectRes: Array<T extends true ? IUser : IUserPublicData> =
+                await this._userRepository.readUsers<T>(
+                    qualifier,
+                    requirePrivate,
+                    precise,
+                );
+            if (!selectRes.length) return getRes({ serviceCode: 'NOT_FOUND' });
+
+            return getRes({
+                messageRaw: { amount: selectRes.length },
+                payload: selectRes,
+            });
         } catch (error: unknown) {
-            return this._resService.getWarnRes('READ', error);
+            return getRes({ error, messageRaw: { qualifier } });
         }
     }
 
     public async updateUser(
         data: IUserUpdateData,
-    ): TPromiseResponse<IUserPublicData> {
+    ): ServicePromiseRes<IUserPublicData> {
+        const getRes = this._requireGetRes('UPDATE');
         const {
             currentPassword,
             passwordConfirm: _,
             ...userUpdateDbData
         } = data;
-        const { userUUID } = data;
-
+        const { userUUID: uuid } = data;
         try {
-            const currentPasswordRes: void | TResponse<IUserPublicData> =
-                await this._checkCurrentPassword<IUserPublicData>(
-                    userUUID,
-                    currentPassword,
-                    'UPDATE',
-                );
-            if (typeof currentPasswordRes === 'object')
-                return currentPasswordRes;
+            const checkPasswordRes: ServiceRes<boolean> =
+                await this.checkPassword(uuid, currentPassword);
+            if (!checkPasswordRes.isSuccess) {
+                const serviceCode: ServiceCode = checkPasswordRes.serviceCode;
+                return getRes({ serviceCode, messageRaw: { uuid } });
+            }
 
             await this._userRepository.updateUser(userUpdateDbData);
-
-            const { payload } = await this.readUsers(userUUID);
-            if (payload === null)
-                return this._resService.getWarnRes('UPDATE', 'DOESNT_EXIST');
-            const editedUser: IUserPublicData = payload[0];
-            return this._resService.getSuccessRes(
-                'UPDATE',
-                { UUID: userUUID },
-                editedUser,
+            const readRes: ServiceRes<IUserPublicData[]> = await this.readUsers(
+                uuid,
+                false,
             );
+            const [updatedUser]: IUserPublicData[] = readRes.payload || [];
+            if (!updatedUser || !readRes.isSuccess) {
+                return getRes({
+                    serviceCode: readRes.serviceCode,
+                    messageRaw: { uuid },
+                });
+            }
+            return getRes({ messageRaw: { uuid }, payload: updatedUser });
         } catch (error: unknown) {
-            return this._resService.getWarnRes('UPDATE', error);
+            return getRes({ error, messageRaw: { uuid } });
         }
     }
 
     public async deleteUser(
         uuid: string,
         currentPassword: string,
-    ): TPromiseResponse {
+    ): ServicePromiseRes {
+        const getRes = this._requireGetRes('DELETE');
         try {
-            const currentPasswordRes: void | TResponse =
-                await this._checkCurrentPassword(
-                    uuid,
-                    currentPassword,
-                    'DELETE',
-                );
-            if (typeof currentPasswordRes === 'object')
-                return currentPasswordRes;
+            const checkPasswordRes: ServiceRes<boolean> =
+                await this.checkPassword(uuid, currentPassword);
+            if (!checkPasswordRes.isSuccess) {
+                return getRes({
+                    serviceCode: checkPasswordRes.serviceCode,
+                    messageRaw: { uuid },
+                });
+            }
 
             await this._userRepository.deleteUser(uuid);
-            return this._resService.getSuccessRes('DELETE', { UUID: uuid });
+            return getRes({ messageRaw: { uuid } });
         } catch (error: unknown) {
-            return this._resService.getWarnRes('DELETE', error);
+            return getRes({ error, messageRaw: { uuid } });
         }
     }
 }
