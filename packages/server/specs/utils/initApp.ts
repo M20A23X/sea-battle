@@ -4,9 +4,9 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { INestApplication } from '@nestjs/common';
 
-import { DataSourceModule } from 'modules/dataSource.module';
+import { JWT_EXPIRE_TIME_S } from 'shared/static/common';
 
-import { JWT_EXPIRE_TIME_S } from 'static/common';
+import { DataSourceModule } from 'modules/dataSource.module';
 
 import { UsersModule } from 'modules/user/users.module';
 import { AuthController } from 'controllers/auth.controller';

@@ -11,11 +11,12 @@ import {
     IUserPublicData,
     IUserUpdateData,
 } from 'shared/types/user';
+import { requireGetServiceRes } from 'shared/utils/res.util';
 
 import { LoggerService } from './logger.service';
 
+import { decipherError } from 'utils/decipherError.util';
 import { hashPassword } from 'utils/hashPassword.util';
-import { requireGetServiceRes } from 'utils/res.util';
 
 import { User } from 'modules/user/models/entities/user.entity';
 
@@ -53,6 +54,7 @@ export class UsersService implements IUsersService {
 
     ///--- Private ---///
     private readonly _requireGetRes = requireGetServiceRes(
+        decipherError,
         User.name,
         new LoggerService(UsersService.name),
     );

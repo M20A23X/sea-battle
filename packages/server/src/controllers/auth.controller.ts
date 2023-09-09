@@ -16,9 +16,9 @@ import { ApiBody, ApiOperation, ApiProduces } from '@nestjs/swagger';
 import type { ControllerRes, ServiceRes } from 'shared/types/requestResponse';
 import type { TRefreshJwtRes, TSignInRes } from 'shared/types/auth';
 
-import { requireSendControllerRes } from 'utils/res.util';
+import { MIME_TYPE } from 'shared/static/web';
 
-import { MIME_TYPE } from 'static/web';
+import { requireSendControllerRes } from 'shared/utils/res.util';
 
 import { User } from 'modules/user/models/entities/user.entity';
 import { SignInDTO } from 'modules/auth/models/dtos/signIn.dto';

@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { ServiceCode } from 'shared/types/requestResponse';
+import { ServiceCode } from 'types/requestResponse';
 
 const MIME_TYPE = {
     applicationJson: 'application/json',

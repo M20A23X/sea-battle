@@ -20,7 +20,7 @@ export class RefreshToken implements IRefreshToken {
     })
     public token: string;
 
-    @OneToOne(() => User)
+    @OneToOne(() => User, { onDelete: 'CASCADE' })
     @Column({
         type: 'int',
         foreignKeyConstraintName: 'users_FK_userId',

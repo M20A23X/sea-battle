@@ -13,14 +13,14 @@ import {
 } from '@nestjs/terminus';
 
 import { ControllerRes } from 'shared/types/requestResponse';
-import { ILoggerService, LoggerService } from 'services/logger.service';
-
 import {
     DATABASE_HEALTHCHECK_TIMEOUT_MS,
     DISK_THRESHOLD_PERCENT,
     MEM_HEAP_THRESHOLD,
     MEM_RSS_THRESHOLD,
-} from 'static/common';
+} from 'shared/static/common';
+
+import { ILoggerService, LoggerService } from 'services/logger.service';
 
 export interface IHealthController {
     get(): ControllerRes<string>;

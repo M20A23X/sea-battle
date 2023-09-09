@@ -9,7 +9,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 
 import { Algorithm } from 'jsonwebtoken';
-import { JWT_ALGORITHM } from 'static/common';
+
+import { JWT_ALGORITHM } from 'shared/static/common';
 
 @Injectable()
 export class AuthGuard implements CanActivate {

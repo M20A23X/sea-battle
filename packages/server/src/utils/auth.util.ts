@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 
 import { TRefreshTokenRaw } from 'shared/types/auth';
 
-import { REFRESH_TOKEN_EXPIRE_TIME_MS } from 'static/common';
+import { REFRESH_TOKEN_EXPIRE_TIME_MS } from 'shared/static/common';
 
 const createRefreshToken = (): TRefreshTokenRaw => {
     const jwtRefreshExpireTime =

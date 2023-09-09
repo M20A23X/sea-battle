@@ -3,10 +3,13 @@ import { NestFactory } from '@nestjs/core';
 
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+
+import { NODE_ENV_PROD } from 'shared/static/common';
+
 import { AppModule } from 'modules/app.module';
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
-import { NODE_ENV_PROD, PORT } from 'static/common';
+import { PORT } from 'static/common';
 
 import { validationConfig } from 'configs/validation.config';
 
