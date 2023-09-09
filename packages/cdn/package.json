@@ -1,0 +1,33 @@
+{
+  "name": "cdn",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write src/",
+    "lint": "eslint --cache src/",
+    "lint:fix": "eslint --fix src/",
+    "pre-commit": "lint-staged",
+    "pre-push": "yarn lint && yarn test:quick",
+    "start": "nest start",
+    "start:debug": "yarn start:dev --debug",
+    "start:dev": "yarn start --watch",
+    "start:prod": "node dist/index",
+    "test": "jest --passWithNoTests --runInBand --detectOpenHandles",
+    "test:coverage": "yarn test --coverage",
+    "test:quick": "yarn test --forceExit --no-cache --bail=1",
+    "test:watch": "yarn test --watch"
+  },
+  "dependencies": {
+    "@nestjs/axios": "^3.0.0",
+    "@nestjs/common": "^9.4.3",
+    "@nestjs/config": "^3.0.0",
+    "@nestjs/core": "^9.4.3",
+    "@nestjs/jwt": "^10.1.1",
+    "@nestjs/platform-express": "^10.2.4",
+    "@nestjs/serve-static": "^4.0.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1"
+  }
+}
