@@ -8,24 +8,24 @@ import request, { Response } from 'supertest';
 
 import { IUser, IUserCreateData, IUserPublicData } from 'shared/types/user';
 import { Res } from 'shared/types/requestResponse';
-
+import { MIME_TYPE } from 'shared/static/web';
 import { getQuery } from 'shared/utils/getQuery.util';
-import { initApp } from './utils/initApp';
-import { initializeDataSource, truncateTable } from './utils/dataSource';
-import { createUsers, createUsersCreateDTO, insertUsers } from './utils/users';
 import {
     random,
     randomizeAction,
     randomRange,
     randomString,
-} from './utils/random';
+} from 'shared/utils/random.util';
+
+import { initApp } from './utils/initApp';
+import { initializeDataSource, truncateTable } from './utils/dataSource';
+import { createUsers, createUsersCreateDTO, insertUsers } from './utils/users';
 
 import {
     ACTION_RANDOM_PERCENT,
     DATA_AMOUNT,
     HOOK_TIMEOUT,
 } from './static/globals';
-import { MIME_TYPE } from 'static/web';
 import { USERS_SCHEMA } from 'static/format';
 
 import { User } from 'modules/user/models/entities/user.entity';
@@ -104,7 +104,6 @@ describe('Users module tests.', () => {
     it(
         '/POST CREATE: should successfully create a new users',
         async () => {
-            const resArr: Res[] = [];
             const expectedResArr: Res[] = [];
             const reqArr: UserCreateDTO[] = createUsersCreateDTO(userDataArr);
 
@@ -116,17 +115,17 @@ describe('Users module tests.', () => {
                 expectedResArr.push(expectedRes);
             });
 
-            for (const dto of reqArr) {
+            for (const [resIndex, dto] of reqArr.entries()) {
                 const res: Response = await request(app.getHttpServer())
                     .post(CREATE_ROUTE)
                     .set('Content-type', MIME_TYPE.applicationJson)
                     .set('Accepts', MIME_TYPE.applicationJson)
-                    .send(dto)
-                    .expect(HttpStatus.CREATED);
+                    .send(dto);
 
-                resArr.push(res.body as Res);
+                if (res.statusCode !== HttpStatus.CREATED)
+                    console.info(`Read request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -136,7 +135,6 @@ describe('Users module tests.', () => {
         '/GET READ: should successfully get users with similar usernames OR by range',
         async () => {
             const reqArr: UsersReadDTO[] = [];
-            const resArr: Res<IUserPublicData[]>[] = [];
             const expectedResArr: Res<IUserPublicData[]>[] = [];
 
             const createReqArr: UserCreateDTO[] =
@@ -203,29 +201,22 @@ describe('Users module tests.', () => {
                 const res: Response = await request(app.getHttpServer())
                     .get('/users/read')
                     .query(getQuery(dto));
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Read request:`, dto);
 
-                if (res.statusCode !== expectedStatus) {
-                    console.info('Read request:', dto);
-                    console.info('Read response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-
-                const resBody: Res<IUserPublicData[]> = res.body;
                 const payloadMapped: IUserPublicData[] | null =
-                    resBody.payload?.map(
+                    res.body.payload?.map(
                         (p: IUserPublicData): IUserPublicData => ({
                             ...p,
                             userUUID: '',
                         }),
                     ) || null;
                 const resMapped: Res<IUserPublicData[]> = {
-                    message: resBody.message,
+                    message: res.body.message,
                     payload: payloadMapped,
                 };
-                resArr.push(resMapped);
+                expect(resMapped).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -234,7 +225,6 @@ describe('Users module tests.', () => {
         '/GET READ: should get 404 status because of no exist usernames NOR ids',
         async () => {
             const reqArr: UsersReadDTO[] = [];
-            const resArr: Res<IUserPublicData[]>[] = [];
             const expectedResArr: Res<IUserPublicData[]>[] = [];
 
             const createReqArr: UserCreateDTO[] = userDataArr.map(
@@ -268,27 +258,25 @@ describe('Users module tests.', () => {
             );
 
             for (const dto of createReqArr) {
-                await request(app.getHttpServer())
+                const res: Response = await request(app.getHttpServer())
                     .post(CREATE_ROUTE)
-                    .send(dto)
-                    .expect(HttpStatus.CREATED);
+                    .send(dto);
+
+                if (res.statusCode !== HttpStatus.CREATED)
+                    console.info(`Read request:`, dto);
+                expect(res.statusCode).toEqual(HttpStatus.CREATED);
             }
 
-            for (const dto of reqArr) {
+            for (const [resIndex, dto] of reqArr.entries()) {
                 const expectedStatus: HttpStatus = HttpStatus.NOT_FOUND;
                 const res: Response = await request(app.getHttpServer())
                     .get('/users/read')
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus) {
-                    console.info('Read request:', dto);
-                    console.info('Read response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-                resArr.push(res.body as Res<IUserPublicData[]>);
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Read request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -340,24 +328,16 @@ describe('Users module tests.', () => {
                 },
             );
 
-            const resArr: Res<IUserPublicData>[] = [];
-            for (const dto of reqArr) {
+            for (const [resIndex, dto] of reqArr.entries()) {
                 const expectedStatus: HttpStatus = HttpStatus.OK;
                 const res: Response = await request(app.getHttpServer())
                     .put(UPDATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== expectedStatus) {
-                    // eslint-disable-next-line sonarjs/no-duplicate-string
-                    console.info('Update request:', dto);
-                    // eslint-disable-next-line sonarjs/no-duplicate-string
-                    console.info('Update response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-                resArr.push(res.body as Res<IUserPublicData>);
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Update request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -424,7 +404,6 @@ describe('Users module tests.', () => {
                 },
             );
 
-            const resArr: Res<IUserPublicData>[] = [];
             for (const [resIndex, dto] of reqArr.entries()) {
                 const expectedStatus: HttpStatus = expectedResArr[resIndex]
                     .payload
@@ -435,15 +414,10 @@ describe('Users module tests.', () => {
                     .put(UPDATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== expectedStatus) {
-                    console.info('Update request:', dto);
-                    console.info('Update response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-                resArr.push(res.body as Res<IUserPublicData>);
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Update request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -514,7 +488,6 @@ describe('Users module tests.', () => {
                 },
             );
 
-            const resArr: Res<IUserPublicData>[] = [];
             for (const [resIndex, dto] of reqArr.entries()) {
                 const expectedStatus: HttpStatus = expectedResArr[resIndex]
                     .payload
@@ -525,22 +498,17 @@ describe('Users module tests.', () => {
                     .put(UPDATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== expectedStatus) {
-                    console.info('Update request:', dto);
-                    console.info('Update response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-                resArr.push(res.body as Res<IUserPublicData>);
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Update request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
 
-    ///--- /DELETE DELETE ---///
+    ///--- /DELETE ---///
     it(
-        '/DELETE DELETE: should successfully delete users',
+        '/DELETE: should successfully delete users',
         async () => {
             const [createReqArr, readRes]: [
                 UserCreateDTO[],
@@ -564,30 +532,22 @@ describe('Users module tests.', () => {
                 },
             );
 
-            const resArr: Res[] = [];
-            for (const dto of reqArr) {
+            for (const [resIndex, dto] of reqArr.entries()) {
                 const expectedStatus: HttpStatus = HttpStatus.OK;
                 const res: Response = await request(app.getHttpServer())
                     .delete(DELETE_ROUTE)
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus) {
-                    // eslint-disable-next-line sonarjs/no-duplicate-string
-                    console.info('Delete request:', dto);
-                    // eslint-disable-next-line sonarjs/no-duplicate-string
-                    console.info('Delete response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-                resArr.push(res.body as Res);
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Update request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
 
     it(
-        '/DELETE DELETE: should prevent delete users with incorrect UUID',
+        '/DELETE: should prevent delete users with incorrect UUID',
         async () => {
             const [createReqArr, readRes]: [
                 UserCreateDTO[],
@@ -627,7 +587,6 @@ describe('Users module tests.', () => {
                 },
             );
 
-            const resArr: Res[] = [];
             for (const [resIndex, dto] of reqArr.entries()) {
                 const expectedStatus: HttpStatus = /no users found/.test(
                     expectedResArr[resIndex].message,
@@ -639,21 +598,16 @@ describe('Users module tests.', () => {
                     .delete(DELETE_ROUTE)
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus) {
-                    console.info('Delete request:', dto);
-                    console.info('Delete response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-                resArr.push(res.body as Res);
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Update request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );
 
     it(
-        '/DELETE DELETE: should prevent delete users with incorrect password confirmation',
+        '/DELETE: should prevent delete users with incorrect password confirmation',
         async () => {
             const [createReqArr, readRes]: [
                 UserCreateDTO[],
@@ -694,7 +648,6 @@ describe('Users module tests.', () => {
                 },
             );
 
-            const resArr: Res[] = [];
             for (const [resIndex, dto] of reqArr.entries()) {
                 const expectedStatus: HttpStatus = /passwords don't match/.test(
                     expectedResArr[resIndex].message,
@@ -706,15 +659,10 @@ describe('Users module tests.', () => {
                     .delete(DELETE_ROUTE)
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus) {
-                    console.info('Delete request:', dto);
-                    console.info('Delete response:', res.body);
-                    expect(res.statusCode).toEqual(expectedStatus);
-                }
-                resArr.push(res.body as Res);
+                if (res.statusCode !== expectedStatus)
+                    console.info(`Update request:`, dto);
+                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
             }
-
-            expect(resArr).toStrictEqual(expectedResArr);
         },
         HOOK_TIMEOUT,
     );

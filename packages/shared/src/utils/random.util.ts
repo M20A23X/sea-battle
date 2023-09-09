@@ -1,4 +1,4 @@
-import { FIELD_LENGTH_RATIO } from '../static/globals';
+import { FIELD_LENGTH_RATIO } from 'static/specs';
 
 const CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.toLowerCase();
 

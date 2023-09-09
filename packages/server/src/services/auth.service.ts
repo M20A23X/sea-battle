@@ -10,12 +10,13 @@ import {
 } from 'shared/types/requestResponse';
 import { IRefreshToken, TRefreshJwtRes, TSignInRes } from 'shared/types/auth';
 
+import { requireGetServiceRes } from 'shared/utils/res.util';
+
 import { ILoggerService, LoggerService } from './logger.service';
 import { IUsersService, UsersService } from './users.service';
 
 import { decipherError } from 'utils/decipherError.util';
 import { createRefreshToken, signJwtToken } from 'utils/auth.util';
-import { requireGetServiceRes } from 'utils/res.util';
 
 import { User } from 'modules/user/models/entities/user.entity';
 
@@ -53,6 +54,7 @@ export class AuthService implements IAuthService {
         UsersService.name,
     );
     private readonly _requireGetRes = requireGetServiceRes(
+        decipherError,
         this._entityName,
         this._loggerService,
     );

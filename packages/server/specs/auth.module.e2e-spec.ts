@@ -11,13 +11,13 @@ import {
     TSignInData,
     TSignInRes,
 } from 'shared/types/auth';
+import { randomizeAction, randomString } from 'shared/utils/random.util';
 
 import { ACTION_RANDOM_PERCENT, HOOK_TIMEOUT } from './static/globals';
 
 import { initApp } from './utils/initApp';
 import { initializeDataSource, truncateTable } from './utils/dataSource';
 import { createUsers, insertUsers } from './utils/users';
-import { randomizeAction, randomString } from './utils/random';
 import { requireSignInUsers, TSignInUsers } from './utils/auth';
 
 import { USERS_SCHEMA } from 'static/format';
@@ -99,15 +99,14 @@ describe('Auth module tests.', () => {
                 .set('authorization', dto.accessToken)
                 .set('x-refresh-token', dto.token);
 
-            if (res.statusCode !== expectedStatus) {
-                console.info('Refresh request:', dto);
-                console.info('Refresh response:', res.body);
-                expect(res.statusCode).toEqual(expectedStatus);
-            }
-
             const resBody: Res<TRefreshJwtRes> =
                 res.body as Res<TRefreshJwtRes>;
             if (resBody.payload) resBody.payload.accessToken = '';
+
+            if (res.statusCode !== expectedStatus)
+                console.info(`Refresh request:`, dto);
+            expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+
             resArr.push(resBody);
         }
         return resArr;
@@ -264,11 +263,7 @@ describe('Auth module tests.', () => {
         '/GET REFRESH: should successfully refresh access tokens',
         async () => {
             const [reqArr, expectedResArr] = await createRefreshReqArr();
-            const resArr: Res<TRefreshJwtRes>[] = await sendRefreshTokenReqs(
-                reqArr,
-                expectedResArr,
-            );
-            expect(resArr).toStrictEqual(expectedResArr);
+            await sendRefreshTokenReqs(reqArr, expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -323,11 +318,7 @@ describe('Auth module tests.', () => {
                 },
             );
 
-            const resArr: Res<TRefreshJwtRes>[] = await sendRefreshTokenReqs(
-                reqArr,
-                expectedResArr,
-            );
-            expect(resArr).toStrictEqual(expectedResArr);
+            await sendRefreshTokenReqs(reqArr, expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -373,11 +364,7 @@ describe('Auth module tests.', () => {
                 },
             );
 
-            const resArr: Res<TRefreshJwtRes>[] = await sendRefreshTokenReqs(
-                reqArr,
-                expectedResArr,
-            );
-            expect(resArr).toStrictEqual(expectedResArr);
+            await sendRefreshTokenReqs(reqArr, expectedResArr);
         },
         HOOK_TIMEOUT,
     );
@@ -416,12 +403,7 @@ describe('Auth module tests.', () => {
                 );
                 await dataChangePromise;
             }
-
-            const resArr: Res<TRefreshJwtRes>[] = await sendRefreshTokenReqs(
-                reqArr,
-                expectedResArr,
-            );
-            expect(resArr).toStrictEqual(expectedResArr);
+            await sendRefreshTokenReqs(reqArr, expectedResArr);
         },
         HOOK_TIMEOUT,
     );

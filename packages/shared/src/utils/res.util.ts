@@ -1,18 +1,17 @@
 import { Response } from 'express';
 
+import { ConsoleLogger } from '@nestjs/common';
+import { SERVICE_CODE_STATUS_DICT } from '../static/web';
+
 import {
     ControllerRes,
     Operation,
     ServiceCode,
     ServicePromiseRes,
     ServiceRes,
-} from 'shared/types/requestResponse';
+} from 'types/requestResponse';
 
-import { decipherError } from './decipherError.util';
-
-import { SERVICE_CODE_STATUS_DICT } from 'static/web';
-
-import { ILoggerService } from 'services/logger.service';
+import { TDecipherError } from 'types/logger';
 
 type Message = string | Record<string, any>;
 
@@ -40,11 +39,12 @@ const concatResMessage = (
 };
 
 const getResMessage = (
+    decipherError: TDecipherError,
     messageRaw: Message | undefined,
     error: unknown,
     serviceCode: ServiceCode | undefined,
     entityName: string,
-    logger?: ILoggerService,
+    logger?: ConsoleLogger,
 ): string => {
     let message = '';
 
@@ -68,7 +68,11 @@ const getResMessage = (
     return message;
 };
 
-const requireGetServiceRes = (entityName: string, logger?: ILoggerService) => {
+const requireGetServiceRes = (
+    decipherError: TDecipherError,
+    entityName: string,
+    logger?: ConsoleLogger,
+) => {
     return (operation: Operation) => {
         return async <P>(props: Props<P>): ServicePromiseRes<P> => {
             const { serviceCode, messageRaw } = props || {};
@@ -81,6 +85,7 @@ const requireGetServiceRes = (entityName: string, logger?: ILoggerService) => {
                     : serviceCode ?? 'SUCCESS';
             const isSuccess: boolean = serviceCodeRes === 'SUCCESS';
             const resMessage: string = getResMessage(
+                decipherError,
                 messageRaw,
                 error,
                 serviceCode,

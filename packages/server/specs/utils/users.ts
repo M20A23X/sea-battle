@@ -1,8 +1,8 @@
 import { IUser, IUserPublicData } from 'shared/types/user';
 import { Res, ServiceRes } from 'shared/types/requestResponse';
+import { randomString } from 'shared/utils/random.util';
 
 import { DATA_AMOUNT } from '../static/globals';
-import { randomString } from './random';
 
 import { USERS_SCHEMA } from 'static/format';
 

@@ -1,10 +1,11 @@
 import { QueryError } from 'mysql2';
 import { ServiceCode } from 'shared/types/requestResponse';
-import { ILoggerService } from 'services/logger.service';
+import { TDecipherError } from 'shared/types/logger';
+import { ConsoleLogger } from '@nestjs/common';
 
-const decipherError = (
+const decipherError: TDecipherError = (
     entityName: string,
-    loggerService: ILoggerService | undefined,
+    loggerService: ConsoleLogger | undefined,
     code: { serviceCode?: ServiceCode; error?: unknown },
 ): string => {
     const { serviceCode: providedServiceCode, error } = code;

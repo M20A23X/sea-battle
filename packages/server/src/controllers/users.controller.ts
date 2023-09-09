@@ -20,9 +20,10 @@ import { Response } from 'express';
 
 import { ControllerRes, ServiceRes } from 'shared/types/requestResponse';
 import { IUserPublicData } from 'shared/types/user';
-import { TUserReadDbQualifier } from 'repositories/users.repository';
+import { MIME_TYPE } from 'shared/static/web';
+import { requireSendControllerRes } from 'shared/utils/res.util';
 
-import { requireSendControllerRes } from 'utils/res.util';
+import { TUserReadDbQualifier } from 'repositories/users.repository';
 
 import { User } from 'modules/user/models/entities/user.entity';
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
@@ -31,8 +32,6 @@ import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
 import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
 
 import { UsersService } from 'services/users.service';
-
-import { MIME_TYPE } from 'static/web';
 
 export interface IUsersController {
     postCreateUser(body: UserCreateDTO, res: Response): ControllerRes;
