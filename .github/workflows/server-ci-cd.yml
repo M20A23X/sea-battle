@@ -38,11 +38,15 @@ jobs:
     outputs:
       delta: ${{ steps.check.outputs.delta }}
     runs-on: ubuntu-latest
+    env:
+      EVENT_NAME: ${{ github.event_name }}
+      EVENT_BEFORE: ${{ github.event.before }}
+      EVENT_AFTER: ${{ github.event.after }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
 
       - name: Check modified server source files
         id: check

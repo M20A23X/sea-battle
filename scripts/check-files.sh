@@ -8,7 +8,13 @@ if [[ "$package" == "$DATABASE" ]]; then
   PACKAGES_DIR=''
 fi
 
-git diff --name-only $BRANCH_DEV HEAD >$TEMP_FILE
+if [[ "$EVENT_NAME" == 'pull_request' ]]; then
+  echo "checkRes=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >$TEMP_FILE
+else
+  echo "checkRes=$(git diff --name-only $EVENT_BEFORE $EVENT_AFTER | xargs)" >$TEMP_FILE
+fi
+
+git diff --name-only $EVENT_BEFORE $EVENT_AFTER >$TEMP_FILE
 while IFS= read -r file; do
   checkRes=$(echo "$file" | grep "$PACKAGES_ROOT$package/")
   if [[ $checkRes ]]; then
