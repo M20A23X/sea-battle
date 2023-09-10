@@ -19,7 +19,7 @@
   "scripts": {
     "build": "react-app-rewired build",
     "format": "prettier --write src/",
-    "lint": "eslint --cache src/",
+    "lint": "eslint src/",
     "lint:fix": "eslint --fix src/",
     "pre-commit": "lint-staged",
     "pre-push": "yarn lint && yarn slint && yarn test:quick",

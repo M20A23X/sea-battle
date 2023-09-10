@@ -7,21 +7,21 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn build:shared && lerna run build",
+    "build": "yarn build:shared && lerna run build --scope",
     "build:shared": "yarn clean:build && tsc --build ./packages/shared/",
     "clean": "lerna clean -y",
     "clean:build": "rm -rf ./packages/**/*.tsbuildinfo ./packages/**/dist/",
     "pre-commit": "yarn build:shared && lerna run pre-commit",
     "pre-push": "yarn build:shared && lerna run pre-push",
     "prepare": "husky install",
-    "start": "concurrently \"yarn watch:shared\" \"lerna run start",
-    "start:debug": "concurrently \"yarn watch:shared\" \"lerna run start:debug",
-    "start:dev": "concurrently \"yarn watch:shared\" \"lerna run start:dev",
-    "start:prod": "lerna run start:prod",
-    "test": "yarn build:shared && lerna run test",
-    "test:quick": "yarn build:shared && lerna run test:quick",
-    "test:watch": "concurrently \"yarn watch:shared\" \"lerna run test:watch",
-    "watch:shared": "tsc --watch --project ./packages/shared/"
+    "start": "yarn build:shared && lerna run start --scope",
+    "start:debug": "concurrently \"yarn watch:shared\" \"lerna run start:debug --scope",
+    "start:dev": "concurrently \"yarn watch:shared\" \"lerna run start:dev --scope",
+    "start:prod": "lerna run start:prod --scope",
+    "test": "yarn build:shared && lerna run test --scope",
+    "test:quick": "yarn build:shared && lerna run test:quick --scope",
+    "test:watch": "concurrently \"yarn watch:shared\" \"lerna run test:watch --scope",
+    "watch:shared": "yarn clean:build && tsc --watch --project ./packages/shared/"
   },
   "repository": {
     "type": "git",
