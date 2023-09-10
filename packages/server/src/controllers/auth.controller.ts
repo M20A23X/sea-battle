@@ -1,5 +1,4 @@
 import { IncomingHttpHeaders } from 'http';
-import { Response } from 'express';
 import {
     Body,
     Controller,
@@ -8,19 +7,15 @@ import {
     Ip,
     Post,
     Put,
-    Res,
     UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiProduces } from '@nestjs/swagger';
 
-import type { ControllerRes, ServiceRes } from 'shared/types/requestResponse';
-import type { TRefreshJwtRes, TSignInRes } from 'shared/types/auth';
+import type { PromiseRes } from 'shared/types/requestResponse';
+import type { TAccessTokenRes, TSignInRes } from 'shared/types/auth';
 
 import { MIME_TYPE } from 'shared/static/web';
 
-import { requireSendControllerRes } from 'shared/utils/res.util';
-
-import { User } from 'modules/user/models/entities/user.entity';
 import { SignInDTO } from 'modules/auth/models/dtos/signIn.dto';
 
 import { AuthGuard } from 'guards/auth.guard';
@@ -30,14 +25,12 @@ interface IAuthController {
     postSignInUser(
         accessIpv6: string,
         signInData: SignInDTO,
-        res: Response,
-    ): ControllerRes<TSignInRes>;
+    ): PromiseRes<TSignInRes>;
 
-    getRefreshJwtToken(
+    getRefreshAccessToken(
         headers: IncomingHttpHeaders,
         accessIpv6: string,
-        res: Response,
-    ): ControllerRes<TRefreshJwtRes>;
+    ): PromiseRes<TAccessTokenRes>;
 }
 
 @Controller('/auth')
@@ -47,10 +40,6 @@ export class AuthController implements IAuthController {
         private _authService: AuthService,
     ) {}
 
-    ///--- Private ---///
-    private readonly _sendUserRes = requireSendControllerRes(User.name);
-    private readonly _sendTokenRes = requireSendControllerRes('access token');
-
     ///--- Public ---///
     @Post('/signin')
     @ApiBody({ type: [SignInDTO] })
@@ -59,38 +48,20 @@ export class AuthController implements IAuthController {
     public async postSignInUser(
         @Ip() accessIpv6: string,
         @Body() body: SignInDTO,
-        @Res() res: Response,
-    ): ControllerRes<TSignInRes> {
+    ): PromiseRes<TSignInRes> {
         const { username, password } = body || {};
-        const serviceRes: ServiceRes<TSignInRes> =
-            await this._authService.signIn(username, password, accessIpv6);
-        return this._sendUserRes(serviceRes, res);
+        return await this._authService.signIn(username, password, accessIpv6);
     }
 
     @Put('/refresh')
     @UseGuards(AuthGuard)
     @ApiBody({ type: [SignInDTO] })
     @ApiOperation({ summary: 'Refresh access token' })
-    public async getRefreshJwtToken(
+    public async getRefreshAccessToken(
         @Headers() headers: IncomingHttpHeaders,
         @Ip() accessIpv6: string,
-        @Res() res: Response,
-    ): ControllerRes<TRefreshJwtRes> {
+    ): PromiseRes<TAccessTokenRes> {
         const { 'x-refresh-token': token } = headers || {};
-        if (!token) {
-            const response: ServiceRes<TRefreshJwtRes> = {
-                isSuccess: false,
-                serviceCode: 'UNAUTHORIZED',
-                message: 'no refresh token provided',
-                operation: 'REFRESH',
-                payload: null,
-            };
-            return this._sendTokenRes(response, res);
-        }
-
-        const serviceRes: ServiceRes<TRefreshJwtRes> =
-            await this._authService.refreshJwtToken(token, accessIpv6);
-
-        return this._sendTokenRes(serviceRes, res);
+        return await this._authService.refreshAccessToken(token, accessIpv6);
     }
 }

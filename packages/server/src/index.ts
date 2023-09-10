@@ -1,17 +1,17 @@
 import * as process from 'process';
 import { NestFactory } from '@nestjs/core';
-
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 
 import { NODE_ENV_PROD } from 'shared/static/common';
-
-import { AppModule } from 'modules/app.module';
-import { ILoggerService, LoggerService } from 'services/logger.service';
-
 import { PORT } from 'static/common';
 
 import { validationConfig } from 'configs/validation.config';
+
+import { ExceptionLoggerFilter } from 'filters/exceptionLogger.filter';
+
+import { AppModule } from 'modules/app.module';
+import { ILoggerService, LoggerService } from 'services/logger.service';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
@@ -23,6 +23,7 @@ async function bootstrap() {
 
     const loggerService: ILoggerService = app.get(LoggerService);
 
+    app.useGlobalFilters(new ExceptionLoggerFilter());
     app.useGlobalPipes(new ValidationPipe(validationConfig));
     app.useLogger(loggerService);
     app.enableCors({ origin: '*' });

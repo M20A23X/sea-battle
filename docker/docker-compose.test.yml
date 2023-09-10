@@ -21,7 +21,7 @@ services:
       NODE_ENV: test
     image: m20a20x/games:server
     container_name: server-test
-    command: yarn test:quick --scope=server
+    command: yarn test:quick server
 
   client:
     extends:
@@ -33,5 +33,5 @@ services:
       NODE_ENV: test
     image: m20a20x/games:client
     container_name: client-test
-    command: yarn test:quick --scope=client
+    command: yarn test:quick client
 

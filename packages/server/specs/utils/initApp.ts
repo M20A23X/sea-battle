@@ -6,6 +6,7 @@ import { INestApplication } from '@nestjs/common';
 
 import { JWT_EXPIRE_TIME_S } from 'shared/static/common';
 
+import { ExceptionLoggerFilter } from 'filters/exceptionLogger.filter';
 import { DataSourceModule } from 'modules/dataSource.module';
 
 import { UsersModule } from 'modules/user/users.module';
@@ -34,6 +35,7 @@ export const initApp = async (): Promise<[INestApplication, TestingModule]> => {
     }).compile();
 
     const app: INestApplication = moduleRef.createNestApplication();
+    app.useGlobalFilters(new ExceptionLoggerFilter());
     await app.init();
 
     return [app, moduleRef];

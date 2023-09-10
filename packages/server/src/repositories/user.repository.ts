@@ -15,11 +15,12 @@ import {
 import {
     IUser,
     IUserCreateData,
-    IUserPublicData,
     IUsersReadData,
     IUserUpdateData,
 } from 'shared/types/user';
-import { FALLBACK, USERS_SCHEMA } from '../static/format';
+
+import { FALLBACK, USERS_SCHEMA } from 'static/format';
+
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
 import { User } from 'modules/user/models/entities/user.entity';
@@ -33,14 +34,14 @@ export type TUserUpdateDbData = Omit<
     'passwordConfirm' | 'currentPassword'
 >;
 
-export interface IUsersRepository {
+export interface IUserRepository {
     insertUser(data: TUserCreateDbData): Promise<void>;
 
-    readUsers<T extends boolean>(
+    readUsers(
         qualifier: TUserReadDbQualifier,
-        requirePrivate: T,
+        requirePrivate: boolean,
         precise: boolean,
-    ): Promise<Array<T extends true ? IUser : IUserPublicData>>;
+    ): Promise<any>;
 
     updateUser(data: TUserUpdateDbData): Promise<void>;
 
@@ -48,9 +49,9 @@ export interface IUsersRepository {
 }
 
 @Injectable()
-export class UsersRepository
+export class UserRepository
     extends Repository<User>
-    implements IUsersRepository
+    implements IUserRepository
 {
     constructor(@InjectDataSource() private _dataSource: DataSource) {
         super(User, _dataSource.createEntityManager());
@@ -58,7 +59,7 @@ export class UsersRepository
 
     ///--- Private ---///
     private readonly _loggerService: ILoggerService = new LoggerService(
-        UsersRepository.name,
+        UserRepository.name,
     );
 
     ///--- Public ---///
@@ -67,17 +68,18 @@ export class UsersRepository
             .insert()
             .values(userCreateData);
         this._loggerService.debug(insertQuery.getQueryAndParameters());
+
         const insertRes: InsertResult = await insertQuery.execute();
         this._loggerService.debug(
             'New entity id: ' + JSON.stringify(insertRes.identifiers),
         );
     }
 
-    public async readUsers<T extends boolean>(
+    public async readUsers(
         qualifier: TUserReadDbQualifier,
-        requirePrivate: T,
+        requirePrivate: boolean,
         precise: boolean,
-    ): Promise<Array<T extends true ? IUser : IUserPublicData>> {
+    ): Promise<any> {
         const selectPart =
             'u.username, u.userUUID, u.imgUrl' +
             (requirePrivate ? ', u.userId, u.password' : '');
@@ -105,14 +107,13 @@ export class UsersRepository
                 },
             );
         }
+
         this._loggerService.debug(selectQuery.getQueryAndParameters());
         return selectQuery.execute();
     }
 
     public async updateUser(data: TUserUpdateDbData): Promise<void> {
         const { userUUID, ...dbData } = data;
-        if (!Object.keys(dbData).length) return;
-
         const updateQuery: UpdateQueryBuilder<IUser> = this.createQueryBuilder()
             .update()
             .set(dbData)

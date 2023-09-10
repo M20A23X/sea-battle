@@ -1,15 +1,13 @@
 import { HttpStatus, INestApplication, ValidationError } from '@nestjs/common';
-
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-
 import { DataSource } from 'typeorm';
 import request, { Response } from 'supertest';
 
 import { IUser, IUserCreateData, IUserPublicData } from 'shared/types/user';
 import { Res } from 'shared/types/requestResponse';
-import { MIME_TYPE } from 'shared/static/web';
-import { getQuery } from 'shared/utils/getQuery.util';
+
+import { getQuery } from 'shared/utils/requestResponse.util';
 import {
     random,
     randomizeAction,
@@ -17,15 +15,18 @@ import {
     randomString,
 } from 'shared/utils/random.util';
 
-import { initApp } from './utils/initApp';
-import { initializeDataSource, truncateTable } from './utils/dataSource';
-import { createUsers, createUsersCreateDTO, insertUsers } from './utils/users';
-
+import { MIME_TYPE } from 'shared/static/web';
+import { IUserService, UserService } from '../src/services/user.service';
 import {
     ACTION_RANDOM_PERCENT,
     DATA_AMOUNT,
     HOOK_TIMEOUT,
 } from './static/globals';
+
+import { initApp } from './utils/initApp';
+import { initializeDataSource, truncateTable } from './utils/dataSource';
+import { createUsers, createUsersCreateDTO, insertUsers } from './utils/users';
+
 import { USERS_SCHEMA } from 'static/format';
 
 import { User } from 'modules/user/models/entities/user.entity';
@@ -34,7 +35,6 @@ import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
 import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
 import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
 import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
-import { IUsersService, UsersService } from 'services/users.service';
 
 const userDataArr: IUser[] = createUsers();
 const CREATE_ROUTE = '/users/create';
@@ -44,7 +44,7 @@ const DELETE_ROUTE = '/users/delete';
 describe('Users module tests.', () => {
     let app: INestApplication;
     let dataSource: DataSource;
-    let usersService: IUsersService;
+    let usersService: IUserService;
 
     ///--- Prepare ---///
 
@@ -52,7 +52,7 @@ describe('Users module tests.', () => {
         const [initializedApp, moduleRef] = await initApp();
         app = initializedApp;
         dataSource = moduleRef.get<DataSource>(DataSource);
-        usersService = moduleRef.get<IUsersService>(UsersService);
+        usersService = moduleRef.get<IUserService>(UserService);
         await initializeDataSource(dataSource);
     }, HOOK_TIMEOUT);
     afterEach(async () => await truncateTable(dataSource, User), HOOK_TIMEOUT);
@@ -109,7 +109,7 @@ describe('Users module tests.', () => {
 
             reqArr.forEach((dto: UserCreateDTO) => {
                 const expectedRes: Res = {
-                    message: `Successfully create users: username '${dto.user.username}'`,
+                    message: `Successfully create users, username '${dto.user.username}'`,
                     payload: null,
                 };
                 expectedResArr.push(expectedRes);
@@ -122,9 +122,12 @@ describe('Users module tests.', () => {
                     .set('Accepts', MIME_TYPE.applicationJson)
                     .send(dto);
 
-                if (res.statusCode !== HttpStatus.CREATED)
+                if (res.statusCode !== HttpStatus.CREATED) {
                     console.info(`Read request:`, dto);
+                    console.info(`Read response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(HttpStatus.CREATED);
             }
         },
         HOOK_TIMEOUT,
@@ -148,8 +151,11 @@ describe('Users module tests.', () => {
                     () => {
                         const [startId, endId] = randomRange(
                             user.username.length,
+                            USERS_SCHEMA.username.minLength,
                         );
-                        readDto.username = user.username.slice(startId, endId);
+                        readDto.username =
+                            user.username.slice(startId, endId) ||
+                            user.username;
                         readUsers = readDto?.username.length
                             ? userDataArr.filter((u: IUser) =>
                                   u.username.includes(readDto?.username || ''),
@@ -172,7 +178,7 @@ describe('Users module tests.', () => {
                 let expectedRes: Res<IUserPublicData[]>;
                 if (expectedResPayload.length) {
                     expectedRes = {
-                        message: `Successfully read users: amount '${expectedResPayload.length}'`,
+                        message: `Successfully read users, amount '${expectedResPayload.length}'`,
                         payload: expectedResPayload,
                     };
                 } else {
@@ -201,8 +207,11 @@ describe('Users module tests.', () => {
                 const res: Response = await request(app.getHttpServer())
                     .get('/users/read')
                     .query(getQuery(dto));
-                if (res.statusCode !== expectedStatus)
+
+                if (res.statusCode !== expectedStatus) {
                     console.info(`Read request:`, dto);
+                    console.info(`Read response:`, res.body);
+                }
 
                 const payloadMapped: IUserPublicData[] | null =
                     res.body.payload?.map(
@@ -216,6 +225,7 @@ describe('Users module tests.', () => {
                     payload: payloadMapped,
                 };
                 expect(resMapped).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(expectedStatus);
             }
         },
         HOOK_TIMEOUT,
@@ -236,7 +246,7 @@ describe('Users module tests.', () => {
                         () => {
                             readDto.username = randomString(
                                 USERS_SCHEMA.username.maxLength,
-                                USERS_SCHEMA.username.maxLength,
+                                USERS_SCHEMA.username.minLength,
                             );
                         },
                         () => {
@@ -244,8 +254,15 @@ describe('Users module tests.', () => {
                             readDto.endId = DATA_AMOUNT * 2;
                         },
                     );
+                    const resPayloadRaw =
+                        readDto.userUUID ?? readDto.username ?? '';
+                    let resPayload = '';
+                    if (resPayloadRaw.length)
+                        resPayload = ", qualifier '"
+                            .concat(resPayloadRaw)
+                            .concat("'");
                     const expectedRes: Res<IUserPublicData[]> = {
-                        message: `Error read users: no users found!`,
+                        message: `Error read users: no users found${resPayload}!`,
                         payload: null,
                     };
 
@@ -262,20 +279,24 @@ describe('Users module tests.', () => {
                     .post(CREATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== HttpStatus.CREATED)
-                    console.info(`Read request:`, dto);
+                if (res.statusCode !== HttpStatus.CREATED) {
+                    console.info(`Create request:`, dto);
+                    console.info(`Create response:`, res.body);
+                }
                 expect(res.statusCode).toEqual(HttpStatus.CREATED);
             }
 
             for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = HttpStatus.NOT_FOUND;
                 const res: Response = await request(app.getHttpServer())
                     .get('/users/read')
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus)
+                if (res.statusCode !== HttpStatus.NOT_FOUND) {
                     console.info(`Read request:`, dto);
+                    console.info(`Read response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(HttpStatus.NOT_FOUND);
             }
         },
         HOOK_TIMEOUT,
@@ -320,7 +341,7 @@ describe('Users module tests.', () => {
                         ...updatedUserPublic
                     } = updatedUser;
                     const expectedRes: Res<IUserPublicData> = {
-                        message: `Successfully update users: uuid '${updatedUser.userUUID}'`,
+                        message: `Successfully update users, uuid '${updatedUser.userUUID}'`,
                         payload: updatedUserPublic,
                     };
                     expectedResArr.push(expectedRes);
@@ -329,14 +350,16 @@ describe('Users module tests.', () => {
             );
 
             for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = HttpStatus.OK;
                 const res: Response = await request(app.getHttpServer())
                     .put(UPDATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== expectedStatus)
+                if (res.statusCode !== HttpStatus.OK) {
                     console.info(`Update request:`, dto);
+                    console.info(`Update response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(HttpStatus.OK);
             }
         },
         HOOK_TIMEOUT,
@@ -390,12 +413,12 @@ describe('Users module tests.', () => {
                     let expectedRes: Res<IUserPublicData>;
                     if (updateDto.user.userUUID === u.userUUID) {
                         expectedRes = {
-                            message: `Successfully update users: uuid '${updatedUser.userUUID}'`,
+                            message: `Successfully update users, uuid '${updatedUser.userUUID}'`,
                             payload: updatedUserPublic,
                         };
                     } else {
                         expectedRes = {
-                            message: `Error update users: no users found, uuid '${updatedUser.userUUID}'!`,
+                            message: `Error read users: no users found, qualifier '${updatedUser.userUUID}'!`,
                             payload: null,
                         };
                     }
@@ -414,9 +437,12 @@ describe('Users module tests.', () => {
                     .put(UPDATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== expectedStatus)
+                if (res.statusCode !== expectedStatus) {
                     console.info(`Update request:`, dto);
+                    console.info(`Update response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(expectedStatus);
             }
         },
         HOOK_TIMEOUT,
@@ -474,7 +500,7 @@ describe('Users module tests.', () => {
                         } = updatedUser;
 
                         expectedRes = {
-                            message: `Successfully update users: uuid '${updatedUser.userUUID}'`,
+                            message: `Successfully update users, uuid '${updatedUser.userUUID}'`,
                             payload: updatedUserPublic,
                         };
                     } else {
@@ -498,9 +524,12 @@ describe('Users module tests.', () => {
                     .put(UPDATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== expectedStatus)
+                if (res.statusCode !== expectedStatus) {
                     console.info(`Update request:`, dto);
+                    console.info(`Update response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(expectedStatus);
             }
         },
         HOOK_TIMEOUT,
@@ -524,7 +553,7 @@ describe('Users module tests.', () => {
                         createReqArr[index].user.password;
 
                     const expectedRes: Res = {
-                        message: `Successfully delete users: uuid '${deleteDto.userUUID}'`,
+                        message: `Successfully delete users, uuid '${deleteDto.userUUID}'`,
                         payload: null,
                     };
                     expectedResArr.push(expectedRes);
@@ -533,14 +562,16 @@ describe('Users module tests.', () => {
             );
 
             for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = HttpStatus.OK;
                 const res: Response = await request(app.getHttpServer())
                     .delete(DELETE_ROUTE)
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus)
-                    console.info(`Update request:`, dto);
+                if (res.statusCode !== HttpStatus.OK) {
+                    console.info(`Delete request:`, dto);
+                    console.info(`Delete response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(HttpStatus.OK);
             }
         },
         HOOK_TIMEOUT,
@@ -573,12 +604,12 @@ describe('Users module tests.', () => {
                     let expectedRes: Res;
                     if (deleteDto.userUUID === u.userUUID) {
                         expectedRes = {
-                            message: `Successfully delete users: uuid '${deleteDto.userUUID}'`,
+                            message: `Successfully delete users, uuid '${deleteDto.userUUID}'`,
                             payload: null,
                         };
                     } else {
                         expectedRes = {
-                            message: `Error delete users: no users found, uuid '${deleteDto.userUUID}'!`,
+                            message: `Error read users: no users found, qualifier '${deleteDto.userUUID}'!`,
                             payload: null,
                         };
                     }
@@ -598,9 +629,12 @@ describe('Users module tests.', () => {
                     .delete(DELETE_ROUTE)
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus)
-                    console.info(`Update request:`, dto);
+                if (res.statusCode !== expectedStatus) {
+                    console.info(`Delete request:`, dto);
+                    console.info(`Delete response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(expectedStatus);
             }
         },
         HOOK_TIMEOUT,
@@ -634,7 +668,7 @@ describe('Users module tests.', () => {
                     let expectedRes: Res;
                     if (deleteDto.currentPassword === currentPassword) {
                         expectedRes = {
-                            message: `Successfully delete users: uuid '${deleteDto.userUUID}'`,
+                            message: `Successfully delete users, uuid '${deleteDto.userUUID}'`,
                             payload: null,
                         };
                     } else {
@@ -659,9 +693,12 @@ describe('Users module tests.', () => {
                     .delete(DELETE_ROUTE)
                     .query(getQuery(dto));
 
-                if (res.statusCode !== expectedStatus)
-                    console.info(`Update request:`, dto);
+                if (res.statusCode !== expectedStatus) {
+                    console.info(`Delete request:`, dto);
+                    console.info(`Delete response:`, res.body);
+                }
                 expect(res.body).toStrictEqual(expectedResArr[resIndex]);
+                expect(res.statusCode).toEqual(expectedStatus);
             }
         },
         HOOK_TIMEOUT,

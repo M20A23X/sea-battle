@@ -1,14 +1,15 @@
 import { IUser, IUserPublicData } from 'shared/types/user';
-import { Res, ServiceRes } from 'shared/types/requestResponse';
+import { Res } from 'shared/types/requestResponse';
 import { randomString } from 'shared/utils/random.util';
 
 import { DATA_AMOUNT } from '../static/globals';
 
 import { USERS_SCHEMA } from 'static/format';
 
+import { IUserService } from 'services/user.service';
+
 import { User } from 'modules/user/models/entities/user.entity';
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
-import { IUsersService } from 'services/users.service';
 
 const { username, password, imgUrl } = USERS_SCHEMA;
 
@@ -31,12 +32,12 @@ const createUsersCreateDTO = (userDataArr: IUser[]): UserCreateDTO[] => {
 
 const insertUsers = async (
     userDataArr: IUser[],
-    usersService: IUsersService,
+    usersService: IUserService,
 ): Promise<[UserCreateDTO[], Res<IUserPublicData[]>]> => {
     const createReqArr: UserCreateDTO[] = createUsersCreateDTO(userDataArr);
     for (const u of createReqArr) await usersService.createUser(u.user);
 
-    const readRes: ServiceRes<IUserPublicData[]> = await usersService.readUsers(
+    const readRes: Res<IUserPublicData[]> = await usersService.readUsers(
         { startId: 1, endId: DATA_AMOUNT },
         false,
     );

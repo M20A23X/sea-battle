@@ -1,6 +1,7 @@
 import { ConsoleLogger, Injectable } from '@nestjs/common';
 import { Request } from 'express';
-import { logRequestInfo } from 'shared/utils/log.util';
+
+import { logRequestInfo } from 'shared/utils/requestResponse.util';
 
 export interface ILoggerService extends ConsoleLogger {
     logRequestInfo(req: Request): void;
@@ -9,6 +10,6 @@ export interface ILoggerService extends ConsoleLogger {
 @Injectable()
 export class LoggerService extends ConsoleLogger implements ILoggerService {
     public logRequestInfo(req: Request): void {
-        logRequestInfo(super.log, req);
+        logRequestInfo(this, req);
     }
 }

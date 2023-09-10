@@ -1,14 +1,14 @@
 import process from 'process';
 import { Provider } from '@nestjs/common';
-
 import { DataSource } from 'typeorm';
+
 import { EnvError } from 'shared/exceptions/EnvError';
+
 import { NODE_ENV_PROD } from 'shared/static/common';
-
-import { ILoggerService, LoggerService } from 'services/logger.service';
-
 import { ENTITIES } from 'static/entities';
 import { DATABASE_IP, DATABASE_NAME, DATABASE_PORT } from 'static/common';
+
+import { ILoggerService, LoggerService } from 'services/logger.service';
 
 export const DataSourceProvider: Provider = {
     provide: DataSource,

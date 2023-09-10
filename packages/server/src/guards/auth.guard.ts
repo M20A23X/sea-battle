@@ -1,4 +1,6 @@
 import process from 'process';
+import { Request } from 'express';
+import { Algorithm } from 'jsonwebtoken';
 import {
     CanActivate,
     ExecutionContext,
@@ -6,9 +8,6 @@ import {
     Injectable,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
-
-import { Algorithm } from 'jsonwebtoken';
 
 import { JWT_ALGORITHM } from 'shared/static/common';
 

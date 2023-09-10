@@ -8,8 +8,8 @@ interface IRefreshToken extends Pick<IUser, 'userId'> {
 
 type TSignInData = Pick<IUser, 'username' | 'password'>;
 
-type TRefreshJwtRes = { accessToken: string };
-type TSignInRes = TRefreshJwtRes & {
+type TAccessTokenRes = { accessToken: string };
+type TSignInRes = TAccessTokenRes & {
     user: IUserPublicData;
     refreshToken: string;
 };
@@ -19,7 +19,7 @@ type TRefreshTokenRaw = Pick<IRefreshToken, 'token' | 'expirationDateTime'>;
 export {
     IRefreshToken,
     TSignInData,
-    TRefreshJwtRes,
+    TAccessTokenRes,
     TSignInRes,
     TRefreshTokenRaw,
 };

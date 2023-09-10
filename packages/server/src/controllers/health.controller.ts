@@ -12,7 +12,10 @@ import {
     TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 
-import { ControllerRes } from 'shared/types/requestResponse';
+import { PromiseRes } from 'shared/types/requestResponse';
+
+import { ServiceException } from 'shared/exceptions/Service.exception';
+
 import {
     DATABASE_HEALTHCHECK_TIMEOUT_MS,
     DISK_THRESHOLD_PERCENT,
@@ -23,8 +26,8 @@ import {
 import { ILoggerService, LoggerService } from 'services/logger.service';
 
 export interface IHealthController {
-    get(): ControllerRes<string>;
-    getCheckHealth(): ControllerRes<HealthCheckResult | unknown>;
+    get(): PromiseRes<string>;
+    getCheckHealth(): PromiseRes<HealthCheckResult | unknown>;
 }
 
 @Controller('/')
@@ -43,14 +46,14 @@ export class HealthController implements IHealthController {
 
     @Get('/')
     @ApiOperation({ summary: 'Check' })
-    async get(): ControllerRes<string> {
+    async get(): PromiseRes<string> {
         return { message: 'Check', payload: 'payload' };
     }
 
     @Get('/health')
     @ApiOperation({ summary: 'Check server health' })
     @HealthCheck()
-    async getCheckHealth(): ControllerRes<HealthCheckResult | unknown> {
+    async getCheckHealth(): PromiseRes<HealthCheckResult | unknown> {
         try {
             const healthRes: HealthCheckResult =
                 await this._healthServices.check([
@@ -90,11 +93,12 @@ export class HealthController implements IHealthController {
                 payload: healthRes,
             };
         } catch (error: unknown) {
-            let message = 'Error check health!';
-            if (error instanceof Error)
-                message = `${message.slice(0, -1)}: ${error.message}`;
-            this._loggerService.warn(message);
-            return { message, payload: error };
+            throw new ServiceException(
+                'CHECK',
+                HealthController.name,
+                'health',
+                { error },
+            );
         }
     }
 }

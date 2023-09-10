@@ -7,12 +7,13 @@ import { IUser, IUserPublicData } from 'shared/types/user';
 import { Res } from 'shared/types/requestResponse';
 import {
     IRefreshToken,
-    TRefreshJwtRes,
+    TAccessTokenRes,
     TSignInData,
     TSignInRes,
 } from 'shared/types/auth';
 import { randomizeAction, randomString } from 'shared/utils/random.util';
 
+import { RefreshToken } from '../src/modules/auth/models/entities/refreshToken.entity';
 import { ACTION_RANDOM_PERCENT, HOOK_TIMEOUT } from './static/globals';
 
 import { initApp } from './utils/initApp';
@@ -26,9 +27,10 @@ import { RefreshTokenRepository } from 'repositories/refreshToken.repository';
 
 import { User } from 'modules/user/models/entities/user.entity';
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
-import { IUsersService, UsersService } from 'services/users.service';
 
-type TRefreshJwtHeaders = Pick<IRefreshToken, 'token'> & TRefreshJwtRes;
+import { IUserService, UserService } from 'services/user.service';
+
+type TRefreshJwtHeaders = Pick<IRefreshToken, 'token'> & TAccessTokenRes;
 
 const userDataArr: IUser[] = createUsers();
 const REFRESH_SUCCESS_RES = 'Successfully refresh access tokens';
@@ -53,21 +55,21 @@ const mapResBody = (res: Res<TSignInRes>): Res<TSignInRes> => {
 describe('Auth module tests.', () => {
     let app: INestApplication;
     let dataSource: DataSource;
-    let usersService: IUsersService;
+    let usersService: IUserService;
     let refreshTokenRepository: RefreshTokenRepository;
     let signInUsers: TSignInUsers;
 
     ///--- Utils ---///
     const createRefreshReqArr = async (): Promise<
-        [TRefreshJwtHeaders[], Res<TRefreshJwtRes>[]]
+        [TRefreshJwtHeaders[], Res<TAccessTokenRes>[]]
     > => {
-        const expectedResArr: Res<TRefreshJwtRes>[] = [];
+        const expectedResArr: Res<TAccessTokenRes>[] = [];
         const [signInResArr] = await signInUsers(app);
 
         const reqArr: TRefreshJwtHeaders[] = signInResArr
             .filter(({ payload }: Res<TSignInRes>) => payload)
             .map(({ payload }): TRefreshJwtHeaders => {
-                const expectedRes: Res<TRefreshJwtRes> = {
+                const expectedRes: Res<TAccessTokenRes> = {
                     message: REFRESH_SUCCESS_RES,
                     payload: { accessToken: '' },
                 };
@@ -83,33 +85,33 @@ describe('Auth module tests.', () => {
 
     const sendRefreshTokenReqs = async (
         reqArr: TRefreshJwtHeaders[],
-        expectedResArr: Array<Res<TRefreshJwtRes> | object>,
-    ): Promise<Res<TRefreshJwtRes>[]> => {
-        const resArr: Res<TRefreshJwtRes>[] = [];
+        expectedResArr: Res<TAccessTokenRes>[],
+    ): Promise<void> => {
         for (const [resIndex, dto] of reqArr.entries()) {
-            const expectedStatus: HttpStatus =
-                expectedResArr[resIndex]?.['payload'] === undefined
-                    ? HttpStatus.FORBIDDEN
-                    : expectedResArr[resIndex]['payload'] === null
-                    ? HttpStatus.UNAUTHORIZED
-                    : HttpStatus.OK;
+            const expectedStatus: HttpStatus = /forbidden/i.test(
+                expectedResArr[resIndex].message,
+            )
+                ? HttpStatus.FORBIDDEN
+                : expectedResArr[resIndex]['payload'] === null
+                ? HttpStatus.UNAUTHORIZED
+                : HttpStatus.OK;
 
             const res: Response = await request(app.getHttpServer())
                 .put('/auth/refresh')
                 .set('authorization', dto.accessToken)
                 .set('x-refresh-token', dto.token);
 
-            const resBody: Res<TRefreshJwtRes> =
-                res.body as Res<TRefreshJwtRes>;
+            const resBody: Res<TAccessTokenRes> =
+                res.body as Res<TAccessTokenRes>;
             if (resBody.payload) resBody.payload.accessToken = '';
 
-            if (res.statusCode !== expectedStatus)
+            if (res.statusCode !== expectedStatus) {
                 console.info(`Refresh request:`, dto);
+                console.info(`Refresh response:`, res.body);
+            }
             expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-
-            resArr.push(resBody);
+            expect(res.statusCode).toEqual(expectedStatus);
         }
-        return resArr;
     };
 
     ///--- Prepare ---///
@@ -118,14 +120,17 @@ describe('Auth module tests.', () => {
         const [initializedApp, moduleRef] = await initApp();
         app = initializedApp;
         dataSource = moduleRef.get<DataSource>(DataSource);
-        usersService = moduleRef.get<IUsersService>(UsersService);
+        usersService = moduleRef.get<IUserService>(UserService);
         refreshTokenRepository = moduleRef.get<RefreshTokenRepository>(
             RefreshTokenRepository,
         );
         signInUsers = requireSignInUsers(userDataArr, usersService);
         await initializeDataSource(dataSource);
     }, HOOK_TIMEOUT);
-    afterEach(async () => await truncateTable(dataSource, User), HOOK_TIMEOUT);
+    afterEach(async () => {
+        await truncateTable(dataSource, RefreshToken);
+        await truncateTable(dataSource, User);
+    }, HOOK_TIMEOUT);
     afterAll(async () => await dataSource.destroy(), HOOK_TIMEOUT);
 
     ///--- Cases ---///
@@ -171,12 +176,12 @@ describe('Auth module tests.', () => {
                 let expectedRes: Res<TSignInRes>;
                 if (req.username === user.username) {
                     expectedRes = {
-                        message: `Successfully sign in users: username '${user.username}'`,
+                        message: `Successfully sign in users, username '${user.username}'`,
                         payload: { user, accessToken: '', refreshToken: '' },
                     };
                 } else {
                     expectedRes = {
-                        message: `Error sign in users: no users found, username '${req.username}'!`,
+                        message: `Error read users: no users found, qualifier '${req.username}'!`,
                         payload: null,
                     };
                 }
@@ -230,7 +235,7 @@ describe('Auth module tests.', () => {
                 let expectedRes: Res<TSignInRes>;
                 if (req.password === correctPassword) {
                     expectedRes = {
-                        message: `Successfully sign in users: username '${user.username}'`,
+                        message: `Successfully sign in users, username '${user.username}'`,
                         payload: { user, accessToken: '', refreshToken: '' },
                     };
                 } else {
@@ -271,17 +276,14 @@ describe('Auth module tests.', () => {
     it(
         '/GET REFRESH: should prevent refresh access tokens with no refresh or access tokens provided',
         async () => {
-            const [reqArrRaw, expectedResArrU] = await createRefreshReqArr();
+            const [reqArrRaw, expectedResArr] = await createRefreshReqArr();
 
-            const expectedResArr = expectedResArrU as Array<
-                Res<TRefreshJwtRes> | object
-            >;
             const reqArr: TRefreshJwtHeaders[] = reqArrRaw.map(
                 (
                     req: TRefreshJwtHeaders,
                     index: number,
                 ): TRefreshJwtHeaders => {
-                    let expectedRes: Res<TRefreshJwtRes> | object;
+                    let expectedRes: Res<TAccessTokenRes>;
                     const accessToken: string = randomizeAction(
                         ACTION_RANDOM_PERCENT,
                         () => '',
@@ -307,9 +309,9 @@ describe('Auth module tests.', () => {
                         }
                     } else {
                         expectedRes = {
-                            error: 'Forbidden',
-                            message: 'Forbidden resource',
-                            statusCode: 403,
+                            message:
+                                'Error process requests: forbidden resource!',
+                            payload: null,
                         };
                     }
 
@@ -333,7 +335,7 @@ describe('Auth module tests.', () => {
                     req: TRefreshJwtHeaders,
                     index: number,
                 ): TRefreshJwtHeaders => {
-                    let expectedRes: Res<TRefreshJwtRes>;
+                    let expectedRes: Res<TAccessTokenRes>;
                     const token: string = randomizeAction(
                         ACTION_RANDOM_PERCENT,
                         () =>

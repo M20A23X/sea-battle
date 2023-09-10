@@ -1,15 +1,17 @@
 import request, { Response } from 'supertest';
 import { HttpStatus, INestApplication } from '@nestjs/common';
+
 import { TSignInData, TSignInRes } from 'shared/types/auth';
 import { Res } from 'shared/types/requestResponse';
-
 import { IUser, IUserPublicData } from 'shared/types/user';
+
 import { MIME_TYPE } from 'shared/static/web';
 
 import { insertUsers } from './users';
 
+import { IUserService } from 'services/user.service';
+
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
-import { IUsersService } from 'services/users.service';
 
 type TSignInUsers = (
     app: INestApplication,
@@ -27,7 +29,7 @@ const miscFallback: Required<Omit<TMisc, 'reqArr'>> = {
 };
 
 const requireSignInUsers =
-    (userDataArr: IUser[], usersService: IUsersService): TSignInUsers =>
+    (userDataArr: IUser[], usersService: IUserService): TSignInUsers =>
     async (app, misc) => {
         const { getStatus, mapResBody, reqArr } = {
             ...miscFallback,
@@ -37,41 +39,39 @@ const requireSignInUsers =
         let reqArrSafe: TSignInData[];
         const expectedResArr: Res<TSignInRes>[] = [];
 
-        const [usersCreateDTOArr, usersReadArr]: [
-            UserCreateDTO[],
-            Res<IUserPublicData[]>,
-        ] = await insertUsers(userDataArr, usersService);
+        if (!reqArr) {
+            const [usersCreateDTOArr, usersReadArr]: [
+                UserCreateDTO[],
+                Res<IUserPublicData[]>,
+            ] = await insertUsers(userDataArr, usersService);
 
-        if (!reqArr && usersReadArr.payload) {
-            const usersArr: IUserPublicData[] = usersReadArr.payload;
-            reqArrSafe = usersCreateDTOArr.map(
-                ({ user }: UserCreateDTO, index: number): TSignInData => {
+            const usersArr: IUserPublicData[] | null = usersReadArr.payload;
+            reqArrSafe = (usersArr || []).map(
+                (user: IUserPublicData, index: number): TSignInData => {
                     const expectedRes: Res<TSignInRes> = {
-                        message: `Successfully sign in users: username '${user.username}'`,
-                        payload: {
-                            user: usersArr[index],
-                            accessToken: '',
-                            refreshToken: '',
-                        },
+                        message: `Successfully sign in users, username '${user.username}'`,
+                        payload: { user, accessToken: '', refreshToken: '' },
                     };
                     expectedResArr.push(expectedRes);
                     return {
                         username: user.username,
-                        password: user.password,
+                        password: usersCreateDTOArr[index].user.password,
                     };
                 },
             );
         } else reqArrSafe = reqArr ?? [];
 
         const resArr: Res<TSignInRes>[] = [];
-        for (const dto of reqArrSafe) {
+        for (const [resIndex, dto] of reqArrSafe.entries()) {
             const res: Response = await request(app.getHttpServer())
                 .post('/auth/signin')
                 .set('Accepts', MIME_TYPE.applicationJson)
                 .send(dto);
 
-            if (res.statusCode !== HttpStatus.CREATED)
-                console.info(`Read request:`, dto);
+            if (res.statusCode !== getStatus(resIndex))
+                console.info(`Sign in request:`, dto);
+            expect(res.statusCode).toEqual(getStatus(resIndex));
+
             const resBodyMapped: Res<TSignInRes> = mapResBody(res.body);
             resArr.push(resBodyMapped);
         }

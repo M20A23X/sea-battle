@@ -18,7 +18,7 @@ import { RefreshToken } from 'modules/auth/models/entities/refreshToken.entity';
 export interface IRefreshTokenRepository {
     insertToken(token: IRefreshToken): Promise<void>;
 
-    readToken(qualifier: string | number): Promise<IRefreshToken>;
+    readToken(qualifier: string | number): Promise<any>;
 
     deleteToken(token: string): Promise<void>;
 }
@@ -48,7 +48,7 @@ export class RefreshTokenRepository
         );
     }
 
-    public async readToken(qualifier: string | number): Promise<IRefreshToken> {
+    public async readToken(qualifier: string | number): Promise<any> {
         const whereClause: string = (
             typeof qualifier === 'number' ? 'r.userId' : 'r.token'
         ).concat(' = :qualifier');
