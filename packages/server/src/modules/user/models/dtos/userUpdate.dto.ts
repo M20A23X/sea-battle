@@ -1,45 +1,33 @@
-import { IsString, Length, Matches, ValidateNested } from 'class-validator';
+import { ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
     ApiProperty,
     IntersectionType,
     PartialType,
-    PickType,
+    PickType
 } from '@nestjs/swagger';
 
-import { IUserUpdateData, TUserReqDTO } from 'shared/types/user';
+import { UserUpdateData, UserReqDTO } from 'shared/types/user';
 
-import { USERS_SCHEMA } from '../../../../static/format';
 import { UserDTO } from './user.dto';
 
-import { UserCreateData } from 'modules/user/models/dtos/userCreate.dto';
+class Data
+    extends IntersectionType(
+        PickType(UserDTO, ['userUUID', 'currentPassword']),
+        PartialType(
+            PickType(UserDTO, [
+                'username',
+                'password',
+                'passwordConfirm',
+                'imgPath'
+            ])
+        )
+    )
+    implements UserUpdateData {}
 
-const { password } = USERS_SCHEMA;
-
-const UserUpdateDataType = IntersectionType(
-    PickType(UserDTO, ['userUUID']),
-    PartialType(
-        IntersectionType(
-            PickType(UserDTO, ['username', 'password', 'imgUrl']),
-            PickType(UserCreateData, ['passwordConfirm']),
-        ),
-    ),
-);
-
-export class UserUpdateData
-    extends UserUpdateDataType
-    implements IUserUpdateData
-{
-    @ApiProperty()
-    @IsString()
-    @Length(password.minLength, password.maxLength)
-    @Matches(password.regex, { message: password.errorMessage })
-    public currentPassword: string;
-}
-
-export class UserUpdateDTO implements TUserReqDTO<UserUpdateData> {
-    @ApiProperty({ type: () => UserUpdateData })
+export class UserUpdateDTO implements UserReqDTO<UserUpdateData> {
+    @ApiProperty({ type: () => Data })
     @ValidateNested()
-    @Type(() => UserUpdateData)
+    @Type(() => Data)
     public user: UserUpdateData;
 }

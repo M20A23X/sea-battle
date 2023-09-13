@@ -1,12 +1,12 @@
 import {
     registerDecorator,
     ValidationArguments,
-    ValidationOptions,
+    ValidationOptions
 } from 'class-validator';
 
 export function IsEqualTo(
     property: string,
-    validationOptions?: ValidationOptions,
+    validationOptions?: ValidationOptions
 ) {
     return function (object: object, propertyName: string) {
         registerDecorator({
@@ -26,8 +26,8 @@ export function IsEqualTo(
                         typeof relatedValue === 'string' &&
                         value === relatedValue
                     );
-                },
-            },
+                }
+            }
         });
     };
 }

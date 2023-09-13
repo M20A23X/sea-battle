@@ -3,6 +3,6 @@ import { DataSourceProvider } from 'configs/dataSource.config';
 
 @Module({
     providers: [DataSourceProvider],
-    exports: [DataSourceProvider],
+    exports: [DataSourceProvider]
 })
 export class DataSourceModule {}

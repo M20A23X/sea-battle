@@ -1,13 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsUUID, Length, Matches, MaxLength } from 'class-validator';
+import {
+    IsNotEmpty,
+    IsPositive,
+    IsString,
+    IsUUID,
+    Matches,
+    ValidateIf
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
-import { IUser } from 'shared/types/user';
+import {
+    UserCreateData,
+    UsersReadData,
+    UserUpdateData
+} from 'shared/types/user';
 
-import { USERS_SCHEMA } from '../../../../static/format';
+import { IsBiggerThanOrEqual } from 'decorators/IsBiggerThanOrEqual';
+import { IsEqualTo } from 'decorators/IsEqualTo';
 
-const { username, password, imgUrl } = USERS_SCHEMA;
+import { USERS_SCHEMA } from 'static/format';
 
-export class UserDTO implements Omit<IUser, 'userId'> {
+const { username, password, imgPath } = USERS_SCHEMA;
+
+type IUserDTO = Required<UserCreateData & UserUpdateData & UsersReadData>;
+class UserDTO implements IUserDTO {
     @ApiProperty()
     @IsUUID()
     public userUUID: string;
@@ -15,18 +31,47 @@ export class UserDTO implements Omit<IUser, 'userId'> {
     @ApiProperty()
     @IsString()
     @Matches(username.regex, { message: username.errorMessage })
-    @Length(username.minLength, username.maxLength)
     public username: string;
 
     @ApiProperty()
     @IsString()
     @Matches(password.regex, { message: password.errorMessage })
-    @Length(password.minLength, password.maxLength)
     public password: string;
 
     @ApiPropertyOptional()
     @IsString()
-    @Matches(imgUrl.regex, { message: imgUrl.errorMessage })
-    @MaxLength(imgUrl.maxLength)
-    public imgUrl: string;
+    @Matches(imgPath.regex, { message: imgPath.errorMessage })
+    public imgPath: string;
+
+    @ApiProperty()
+    @IsString()
+    @Matches(password.regex, { message: password.errorMessage })
+    public currentPassword: string;
+
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    @ValidateIf((o: UserCreateData) => !!o.password)
+    @IsEqualTo('password' as keyof UserCreateData, {
+        message: 'passwords must match!'
+    })
+    public passwordConfirm: string;
+
+    @ApiProperty()
+    @Type(() => Number)
+    @IsPositive()
+    @ValidateIf((o: UserDTO) => !!o?.endId)
+    public startId: number;
+
+    @ApiProperty()
+    @Type(() => Number)
+    @IsPositive()
+    @ValidateIf((o: UserDTO) => !!o?.startId)
+    @IsBiggerThanOrEqual('startId' as keyof UserDTO, {
+        message: 'endId must be grater than startId!'
+    })
+    public endId: number;
 }
+
+export type { IUserDTO };
+export { UserDTO };

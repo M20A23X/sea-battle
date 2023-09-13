@@ -1,12 +1,12 @@
 import {
     registerDecorator,
     ValidationArguments,
-    ValidationOptions,
+    ValidationOptions
 } from 'class-validator';
 
-export function IsBiggerThan(
+export function IsBiggerThanOrEqual(
     property: string,
-    validationOptions?: ValidationOptions,
+    validationOptions?: ValidationOptions
 ) {
     return function (object: object, propertyName: string) {
         registerDecorator({
@@ -24,10 +24,10 @@ export function IsBiggerThan(
                     return (
                         typeof value === 'number' &&
                         typeof relatedValue === 'number' &&
-                        value > relatedValue
+                        value >= relatedValue
                     );
-                },
-            },
+                }
+            }
         });
     };
 }

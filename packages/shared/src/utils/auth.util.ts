@@ -1,11 +1,11 @@
 import process from 'process';
-
 import { Request } from 'express';
 import { Algorithm } from 'jsonwebtoken';
 import { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-import { EnvError } from '../exceptions/EnvError';
+import { EnvError } from 'exceptions/EnvError';
+
 import { JWT_ALGORITHM } from 'static/common';
 
 const extractToken = (request: Request): string | undefined => {
@@ -38,4 +38,12 @@ const checkAccess = async (
     return true;
 };
 
-export { checkAccess };
+const signJwtToken = async (
+    jwtService: JwtService,
+    secret: string,
+    userId: number,
+    username: string,
+): Promise<string> =>
+    await jwtService.signAsync({ userId, username }, { secret });
+
+export { checkAccess, signJwtToken };

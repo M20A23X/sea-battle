@@ -5,24 +5,24 @@ import {
     Get,
     Post,
     Put,
-    Query,
+    Query
 } from '@nestjs/common';
 import {
     ApiBody,
     ApiConsumes,
     ApiOperation,
     ApiProduces,
-    ApiQuery,
+    ApiQuery
 } from '@nestjs/swagger';
 
 import { PromiseRes } from 'shared/types/requestResponse';
-import { IUserPublicData } from 'shared/types/user';
+import { UserPublicData } from 'shared/types/user';
 
 import { MIME_TYPE } from 'shared/static/web';
 
-import { TUserReadDbQualifier } from '../repositories/user.repository';
+import { TUserReadDbQualifier } from 'repositories/user.repository';
 
-import { UserService } from '../services/user.service';
+import { UserService } from 'services/user.service';
 
 import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
 import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
@@ -32,11 +32,11 @@ import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
 export interface IUserController {
     postCreateUser(body: UserCreateDTO): PromiseRes;
 
-    getReadUsers(query: UsersReadDTO): PromiseRes<IUserPublicData[]>;
+    getReadUsers(query: UsersReadDTO): PromiseRes<UserPublicData[]>;
 
-    putUpdateUser(body: UserUpdateDTO): PromiseRes<IUserPublicData>;
+    putUpdateUser(body: UserUpdateDTO): PromiseRes<UserPublicData>;
 
-    deleteUser(query: UserDeleteDTO): PromiseRes;
+    deleteUser(body: UserDeleteDTO): PromiseRes;
 }
 
 @Controller('users')
@@ -58,8 +58,8 @@ export class UserController implements IUserController {
     @ApiProduces(MIME_TYPE.applicationJson)
     @ApiOperation({ summary: 'Read users' })
     async getReadUsers(
-        @Query() query: UsersReadDTO,
-    ): PromiseRes<IUserPublicData[]> {
+        @Query() query: UsersReadDTO
+    ): PromiseRes<UserPublicData[]> {
         const readQualifier: TUserReadDbQualifier = query?.username
             ? query.username
             : query?.userUUID
@@ -74,17 +74,18 @@ export class UserController implements IUserController {
     @ApiProduces(MIME_TYPE.applicationJson)
     @ApiOperation({ summary: 'Update user' })
     async putUpdateUser(
-        @Body() body: UserUpdateDTO,
-    ): PromiseRes<IUserPublicData> {
+        @Body() body: UserUpdateDTO
+    ): PromiseRes<UserPublicData> {
         return await this._usersService.updateUser(body.user);
     }
 
     @Delete('/delete')
     @ApiQuery({ type: [UserDeleteDTO] })
+    @ApiConsumes(MIME_TYPE.applicationJson)
     @ApiProduces(MIME_TYPE.applicationJson)
     @ApiOperation({ summary: 'Delete user' })
-    async deleteUser(@Query() query: UserDeleteDTO): PromiseRes {
-        const { userUUID, currentPassword } = query;
+    async deleteUser(@Body() body: UserDeleteDTO): PromiseRes {
+        const { userUUID, currentPassword } = body.user;
         return await this._usersService.deleteUser(userUUID, currentPassword);
     }
 }

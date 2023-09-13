@@ -3,45 +3,44 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
     PromiseRes,
     Res,
-    ResPayload,
-    ServiceCode,
+    MessagePayload,
+    ServiceCode
 } from 'shared/types/requestResponse';
 import {
+    getServiceCode,
+    requireGetRes
+} from 'shared/utils/requestResponse.util';
+import {
     IUser,
-    IUserCreateData,
-    IUserPublicData,
-    IUserUpdateData,
+    UserCreateData,
+    UserPublicData,
+    UserUpdateData
 } from 'shared/types/user';
 
-import {
-    getServiceCode,
-    requireGetRes,
-} from 'shared/utils/requestResponse.util';
+import { ReadType } from 'types/user';
 import {
     IUserRepository,
     TUserReadDbQualifier,
-    UserRepository,
+    UserRepository
 } from 'repositories/user.repository';
 import { hashPassword } from 'utils/hashPassword.util';
 
-type ReadType<T> = T extends true ? IUser : IUserPublicData;
-
 export interface IUserService {
-    createUser(data: IUserCreateData): PromiseRes;
+    createUser(data: UserCreateData): PromiseRes;
 
     readUsers<T extends boolean>(
         qualifier: TUserReadDbQualifier,
         requirePrivate: T,
-        precise?: boolean,
+        precise?: boolean
     ): PromiseRes<ReadType<T>[]>;
 
-    updateUser(data: IUserUpdateData): PromiseRes<IUserPublicData>;
+    updateUser(data: UserUpdateData): PromiseRes<UserPublicData>;
 
     deleteUser(uuid: string, currentPassword: string): PromiseRes;
 
     checkPassword(
         user: string | IUser,
-        currentPassword: string,
+        currentPassword: string
     ): Promise<boolean>;
 }
 
@@ -49,7 +48,7 @@ export interface IUserService {
 export class UserService implements IUserService {
     constructor(
         @Inject(UserRepository)
-        private readonly _userRepository: IUserRepository,
+        private readonly _userRepository: IUserRepository
     ) {}
 
     ///--- Private ---///
@@ -58,7 +57,7 @@ export class UserService implements IUserService {
     ///--- Public ---///
     public async checkPassword(
         user: string | IUser,
-        currentPassword: string,
+        currentPassword: string
     ): Promise<boolean> {
         let checkUser: IUser;
 
@@ -71,14 +70,14 @@ export class UserService implements IUserService {
         return checkUser.password === hashPassword(currentPassword);
     }
 
-    public async createUser(data: IUserCreateData): PromiseRes {
+    public async createUser(data: UserCreateData): PromiseRes {
         const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('CREATE');
         const { passwordConfirm: _, password, ...publicData } = data;
         const { username } = data;
 
-        const insertData: Omit<IUserCreateData, 'passwordConfirm'> = {
+        const insertData: Omit<UserCreateData, 'passwordConfirm'> = {
             ...publicData,
-            password: hashPassword(password),
+            password: hashPassword(password)
         };
         try {
             await this._userRepository.insertUser(insertData);
@@ -94,7 +93,7 @@ export class UserService implements IUserService {
     public async readUsers<T extends boolean>(
         qualifier: TUserReadDbQualifier,
         requirePrivate: T,
-        precise = false,
+        precise = false
     ): PromiseRes<ReadType<T>[]> {
         const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('READ');
 
@@ -103,7 +102,7 @@ export class UserService implements IUserService {
             readResRaw = await this._userRepository.readUsers(
                 qualifier,
                 requirePrivate,
-                precise,
+                precise
             );
         } catch (error: unknown) {
             const serviceCode: ServiceCode | undefined = getServiceCode(error);
@@ -115,7 +114,7 @@ export class UserService implements IUserService {
         if (!isArray) throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
         let readRes = readResRaw as any[];
         if (!readRes.length) {
-            const resPayload: ResPayload =
+            const resPayload: MessagePayload =
                 typeof qualifier === 'string' ? { qualifier } : undefined;
             throw getUnSuccessRes('NOT_FOUND', resPayload);
         }
@@ -128,9 +127,7 @@ export class UserService implements IUserService {
         return getSuccessRes({ amount: readRes.length }, readRes);
     }
 
-    public async updateUser(
-        data: IUserUpdateData,
-    ): PromiseRes<IUserPublicData> {
+    public async updateUser(data: UserUpdateData): PromiseRes<UserPublicData> {
         const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('UPDATE');
         const {
             currentPassword,
@@ -141,7 +138,7 @@ export class UserService implements IUserService {
         const { userUUID: uuid } = data;
         const checkPasswordRes: boolean = await this.checkPassword(
             uuid,
-            currentPassword,
+            currentPassword
         );
         if (!checkPasswordRes)
             throw getUnSuccessRes('PASSWORDS_DONT_MATCH', { uuid });
@@ -154,11 +151,11 @@ export class UserService implements IUserService {
             throw getUnSuccessRes(serviceCode);
         }
 
-        const readRes: Res<IUserPublicData[]> = await this.readUsers(
+        const readRes: Res<UserPublicData[]> = await this.readUsers(
             uuid,
-            false,
+            false
         );
-        const [updatedUser]: IUserPublicData[] = readRes.payload || [];
+        const [updatedUser]: UserPublicData[] = readRes.payload || [];
         return getSuccessRes({ uuid }, updatedUser);
     }
 
@@ -167,7 +164,7 @@ export class UserService implements IUserService {
 
         const checkPasswordRes: boolean = await this.checkPassword(
             uuid,
-            currentPassword,
+            currentPassword
         );
         if (!checkPasswordRes)
             throw getUnSuccessRes('PASSWORDS_DONT_MATCH', { uuid });

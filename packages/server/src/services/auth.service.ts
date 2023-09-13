@@ -1,38 +1,41 @@
+import process from 'process';
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-import { IUser, IUserPublicData } from 'shared/types/user';
 import { PromiseRes, Res, ServiceCode } from 'shared/types/requestResponse';
-import { IRefreshToken, TAccessTokenRes, TSignInRes } from 'shared/types/auth';
+import { IRefreshToken, AccessTokenRes, SignInRes } from 'shared/types/auth';
+import { IUser, UserPublicData } from 'shared/types/user';
 
 import { decipherCode } from 'shared/utils/decipherError.util';
 import {
     getServiceCode,
-    requireGetRes,
+    GetUnSuccessRes,
+    requireGetRes
 } from 'shared/utils/requestResponse.util';
+import { signJwtToken } from 'shared/utils/auth.util';
 
 import { ILoggerService, LoggerService } from './logger.service';
 import { IUserService, UserService } from './user.service';
 
-import { createRefreshToken, signJwtToken } from 'utils/auth.util';
+import { createRefreshToken } from 'utils/auth.util';
 
 import { User } from 'modules/user/models/entities/user.entity';
 
 import {
     IRefreshTokenRepository,
-    RefreshTokenRepository,
+    RefreshTokenRepository
 } from 'repositories/refreshToken.repository';
 
-interface IAuthService {
+export interface IAuthService {
     signIn(
         username: string,
         password: string,
-        accessIpv6: string,
-    ): PromiseRes<TSignInRes>;
+        accessIpv6: string
+    ): PromiseRes<SignInRes>;
     refreshAccessToken(
         token: string | undefined,
-        accessIpv6: string,
-    ): PromiseRes<TAccessTokenRes>;
+        accessIpv6: string
+    ): PromiseRes<AccessTokenRes>;
 }
 
 @Injectable()
@@ -43,30 +46,43 @@ export class AuthService implements IAuthService {
         @Inject(UserService)
         private _usersService: IUserService,
         @Inject(RefreshTokenRepository)
-        private _refreshTokenRepository: IRefreshTokenRepository,
+        private _refreshTokenRepository: IRefreshTokenRepository
     ) {}
 
     ///--- Private ---///
     private readonly _loggerService: ILoggerService = new LoggerService(
-        UserService.name,
+        UserService.name
     );
     private readonly _getRes = requireGetRes(AuthService.name);
+
+    private async _deleteExpiredToken(
+        token: string,
+        getUnSuccessRes: GetUnSuccessRes
+    ) {
+        try {
+            await this._refreshTokenRepository.deleteToken(token);
+        } catch (error: unknown) {
+            const serviceCode: ServiceCode | undefined = getServiceCode(error);
+            if (!serviceCode) throw error;
+            throw getUnSuccessRes(serviceCode);
+        }
+    }
 
     ///--- Public ---///
     public async signIn(
         username: string,
         password: string,
-        accessIpv6: string,
-    ): PromiseRes<TSignInRes> {
+        accessIpv6: string
+    ): PromiseRes<SignInRes> {
         const [getSuccessRes, getUnSuccessRes] = this._getRes(
             'SIGN_IN',
-            User.name,
+            User.name
         );
 
         const readRes: Res<IUser[]> = await this._usersService.readUsers(
             username,
             true,
-            true,
+            true
         );
         const [user]: IUser[] = readRes.payload || [];
         const { userUUID: uuid } = user;
@@ -80,7 +96,7 @@ export class AuthService implements IAuthService {
         const refreshTokenUnused: IRefreshToken = {
             userId,
             accessIpv6: accessIpv6,
-            ...createRefreshToken(),
+            ...createRefreshToken()
         };
 
         let refreshToken: string | undefined;
@@ -94,7 +110,7 @@ export class AuthService implements IAuthService {
             const decipheredCode: string = decipherCode(
                 User.name,
                 'ER_DUP_ENTRY',
-                { user: uuid },
+                { user: uuid }
             );
             const errMsg = `Skipping create new refresh token: ${decipheredCode}`;
             this._loggerService.warn(errMsg);
@@ -102,7 +118,7 @@ export class AuthService implements IAuthService {
             let readResRaw: any;
             try {
                 readResRaw = await this._refreshTokenRepository.readToken(
-                    user.userId,
+                    user.userId
                 );
             } catch (error: unknown) {
                 const serviceCode: ServiceCode | undefined =
@@ -120,21 +136,26 @@ export class AuthService implements IAuthService {
         if (typeof refreshToken !== 'string')
             throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
 
-        const signInPayload: TSignInRes = {
+        const signInPayload: SignInRes = {
             user: userPublicData,
-            accessToken: await signJwtToken(this._jwtService, userId, username),
-            refreshToken,
+            accessToken: await signJwtToken(
+                this._jwtService,
+                process.env.JWT_SECRET || '',
+                userId,
+                username
+            ),
+            refreshToken
         };
         return getSuccessRes({ username }, signInPayload);
     }
 
     public async refreshAccessToken(
         token: string | undefined,
-        accessIpv6: string,
-    ): PromiseRes<TAccessTokenRes> {
+        accessIpv6: string
+    ): PromiseRes<AccessTokenRes> {
         const [getSuccessRes, getUnSuccessRes] = this._getRes(
             'REFRESH',
-            'access token',
+            'access token'
         );
 
         if (!token) throw getUnSuccessRes('NO_TOKEN');
@@ -162,34 +183,29 @@ export class AuthService implements IAuthService {
             token: readToken,
             userId,
             accessIpv6: lastAccessIp,
-            expirationDateTime,
+            expirationDateTime
         } = readTokenRes[0];
+
         if (accessIpv6 !== lastAccessIp) throw getUnSuccessRes('IP_CHANGED');
 
         if (new Date(expirationDateTime).getTime() < new Date().getTime()) {
-            try {
-                await this._refreshTokenRepository.deleteToken(readToken);
-            } catch (error: unknown) {
-                const serviceCode: ServiceCode | undefined =
-                    getServiceCode(error);
-                if (!serviceCode) throw error;
-                throw getUnSuccessRes(serviceCode);
-            }
+            await this._deleteExpiredToken(readToken, getUnSuccessRes);
             throw getUnSuccessRes('SESSION_EXPIRED');
         }
 
-        const readUsersRes: Res<IUserPublicData[]> =
+        const readUsersRes: Res<UserPublicData[]> =
             await this._usersService.readUsers(
                 { startId: userId, endId: userId },
-                false,
+                false
             );
         if (!readUsersRes.payload?.length)
             throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
 
         const accessToken: string = await signJwtToken(
             this._jwtService,
+            process.env.JWT_SECRET || '',
             userId,
-            readUsersRes.payload[0].username,
+            readUsersRes.payload[0].username
         );
 
         return getSuccessRes(undefined, { accessToken }, 'access token');

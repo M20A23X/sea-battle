@@ -4,7 +4,7 @@ import {
     JoinColumn,
     OneToOne,
     PrimaryColumn,
-    Unique,
+    Unique
 } from 'typeorm';
 import { IsDate, IsIP } from 'class-validator';
 
@@ -16,14 +16,14 @@ import { User } from 'modules/user/models/entities/user.entity';
 export class RefreshToken implements IRefreshToken {
     @PrimaryColumn({
         primaryKeyConstraintName: 'refreshTokens_PK_token',
-        type: 'uuid',
+        type: 'uuid'
     })
     public token: string;
 
     @OneToOne(() => User, { onDelete: 'CASCADE' })
     @Column({
         type: 'int',
-        foreignKeyConstraintName: 'users_FK_userId',
+        foreignKeyConstraintName: 'users_FK_userId'
     })
     @JoinColumn({ name: 'userId' })
     @Unique('refreshTokens_UQ_userId', ['userId'])

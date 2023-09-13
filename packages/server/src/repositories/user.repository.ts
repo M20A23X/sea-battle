@@ -9,14 +9,14 @@ import {
     Repository,
     SelectQueryBuilder,
     UpdateQueryBuilder,
-    UpdateResult,
+    UpdateResult
 } from 'typeorm';
 
 import {
     IUser,
-    IUserCreateData,
-    IUsersReadData,
-    IUserUpdateData,
+    UserCreateData,
+    UsersReadData,
+    UserUpdateData
 } from 'shared/types/user';
 
 import { FALLBACK, USERS_SCHEMA } from 'static/format';
@@ -27,10 +27,10 @@ import { User } from 'modules/user/models/entities/user.entity';
 
 export type TUserReadDbQualifier =
     | string
-    | Pick<IUsersReadData, 'startId' | 'endId'>;
-export type TUserCreateDbData = Omit<IUserCreateData, 'passwordConfirm'>;
+    | Pick<UsersReadData, 'startId' | 'endId'>;
+export type TUserCreateDbData = Omit<UserCreateData, 'passwordConfirm'>;
 export type TUserUpdateDbData = Omit<
-    IUserUpdateData,
+    UserUpdateData,
     'passwordConfirm' | 'currentPassword'
 >;
 
@@ -40,7 +40,7 @@ export interface IUserRepository {
     readUsers(
         qualifier: TUserReadDbQualifier,
         requirePrivate: boolean,
-        precise: boolean,
+        precise: boolean
     ): Promise<any>;
 
     updateUser(data: TUserUpdateDbData): Promise<void>;
@@ -50,7 +50,7 @@ export interface IUserRepository {
 
 @Injectable()
 export class UserRepository
-    extends Repository<User>
+    extends Repository<IUser>
     implements IUserRepository
 {
     constructor(@InjectDataSource() private _dataSource: DataSource) {
@@ -59,7 +59,7 @@ export class UserRepository
 
     ///--- Private ---///
     private readonly _loggerService: ILoggerService = new LoggerService(
-        UserRepository.name,
+        UserRepository.name
     );
 
     ///--- Public ---///
@@ -71,17 +71,17 @@ export class UserRepository
 
         const insertRes: InsertResult = await insertQuery.execute();
         this._loggerService.debug(
-            'New entity id: ' + JSON.stringify(insertRes.identifiers),
+            'New entity id: ' + JSON.stringify(insertRes.identifiers)
         );
     }
 
     public async readUsers(
         qualifier: TUserReadDbQualifier,
         requirePrivate: boolean,
-        precise: boolean,
+        precise: boolean
     ): Promise<any> {
         const selectPart =
-            'u.username, u.userUUID, u.imgUrl' +
+            'u.username, u.userUUID, u.imgPath' +
             (requirePrivate ? ', u.userId, u.password' : '');
         let selectQuery: SelectQueryBuilder<IUser> =
             this.createQueryBuilder('u').select(selectPart);
@@ -95,7 +95,7 @@ export class UserRepository
                 isUsername
                     ? `u.username ${whereUsername}`
                     : `u.userUUID = :qualifier`,
-                { qualifier },
+                { qualifier }
             );
         } else {
             const { startId, endId } = qualifier;
@@ -103,8 +103,8 @@ export class UserRepository
                 'u.userId BETWEEN :startId AND :endId',
                 {
                     startId,
-                    endId: endId ?? FALLBACK.maxReadAmount,
-                },
+                    endId: endId ?? FALLBACK.maxReadAmount
+                }
             );
         }
 
@@ -126,7 +126,7 @@ export class UserRepository
 
     public async deleteUser(uuid: string): Promise<void> {
         const deleteQuery: DeleteQueryBuilder<IUser> = this.createQueryBuilder(
-            'u',
+            'u'
         )
             .delete()
             .where({ userUUID: uuid });

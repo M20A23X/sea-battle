@@ -5,7 +5,7 @@ import { ILoggerService, LoggerService } from 'services/logger.service';
 
 export class LogHttpRequestMiddleware implements NestMiddleware {
     constructor(
-        @Inject(LoggerService) private _loggerService: ILoggerService,
+        @Inject(LoggerService) private _loggerService: ILoggerService
     ) {}
 
     use(req: Request, res: Response, next: NextFunction): void {

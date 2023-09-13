@@ -7,7 +7,7 @@ import {
     InsertQueryBuilder,
     InsertResult,
     Repository,
-    SelectQueryBuilder,
+    SelectQueryBuilder
 } from 'typeorm';
 
 import { IRefreshToken } from 'shared/types/auth';
@@ -34,7 +34,7 @@ export class RefreshTokenRepository
 
     ///--- Private ---///
     private readonly _loggerService: ILoggerService = new LoggerService(
-        RefreshTokenRepository.name,
+        RefreshTokenRepository.name
     );
 
     ///--- Public ---///
@@ -44,7 +44,7 @@ export class RefreshTokenRepository
         this._loggerService.debug(insertQuery.getQueryAndParameters());
         const insertRes: InsertResult = await insertQuery.execute();
         this._loggerService.debug(
-            'New entity id: ' + JSON.stringify(insertRes.identifiers),
+            'New entity id: ' + JSON.stringify(insertRes.identifiers)
         );
     }
 

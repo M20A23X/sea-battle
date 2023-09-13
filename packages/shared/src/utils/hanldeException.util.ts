@@ -1,21 +1,20 @@
 import { Response } from 'express';
 import {
     ArgumentsHost,
-    BadRequestException,
     ConsoleLogger,
-    ForbiddenException,
+    HttpException,
     HttpStatus,
 } from '@nestjs/common';
 import { HttpArgumentsHost } from '@nestjs/common/interfaces';
 
-import { ServiceException } from '../exceptions/Service.exception';
+import { ServiceException } from 'exceptions/Service.exception';
 
-import { SERVICE_CODE_STATUS_DICT } from '../static/web';
+import { SERVICE_CODE_STATUS_DICT } from 'static/web';
 
 import { getContextEntity } from './requestResponse.util';
 import { decipherCode } from './decipherError.util';
 
-import { Res, ResPayload, ServiceCode } from 'types/requestResponse';
+import { Res, MessagePayload, ServiceCode } from 'types/requestResponse';
 
 const UNEXPECTED_ERR_CODES: ServiceCode[] = [
     'UNEXPECTED_ERROR',
@@ -31,11 +30,12 @@ export const handleException = (
     const res: Response = ctx.getResponse<Response>();
 
     let operation = 'process';
-    let serviceCode: ServiceCode = 'UNEXPECTED_ERROR';
-    let context = 'RequestContext';
-    let entity: string | undefined;
-    let payload: ResPayload = undefined;
+    let serviceCode: ServiceCode | 'HTTP_ERROR' = 'UNEXPECTED_ERROR';
+    let context = 'ExceptionFilter';
+    let entity = 'Request';
+    let payload: MessagePayload = undefined;
     let message: string | undefined = undefined;
+    let status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
 
     if (exception instanceof ServiceException) {
         operation = exception.operation;
@@ -43,28 +43,34 @@ export const handleException = (
         context = exception.context;
         entity = exception.entity;
         payload = exception.payload;
-    } else if (exception instanceof ForbiddenException) {
-        serviceCode = 'FORBIDDEN';
-        context = 'HTTPService';
-        entity = 'Request';
-    } else if (exception instanceof BadRequestException) {
-        [message] = (exception.getResponse() as { message: string })['message'];
-        serviceCode = 'BAD_REQUEST';
-        context = 'DTOService';
+        status = SERVICE_CODE_STATUS_DICT[serviceCode];
+    } else if (exception instanceof HttpException) {
+        serviceCode = 'HTTP_ERROR';
+        const res: string | object = exception.getResponse();
+        if (typeof res === 'object') {
+            const resCasted = res as {
+                message: string | string[];
+                statusCode: HttpStatus;
+            };
+            const resMessage: string | string[] = resCasted.message;
+            message = resMessage instanceof Array ? resMessage[0] : resMessage;
+            status = resCasted.statusCode;
+        } else message = res;
+    } else {
+        const exceptionCasted = exception as Error & {
+            statusCode?: HttpStatus;
+        };
+        if (exceptionCasted?.statusCode) status = exceptionCasted.statusCode;
+        if (status === HttpStatus.NOT_FOUND) return res.sendStatus(status);
     }
-
-    const status: HttpStatus =
-        SERVICE_CODE_STATUS_DICT?.[serviceCode] ??
-        HttpStatus.INTERNAL_SERVER_ERROR;
 
     const contextEntity: string = (
         entity || getContextEntity(context)
     ).toLowerCase();
-    const exceptionMessage: string = (
-        message ?? decipherCode(contextEntity, serviceCode, payload)
-    ).toLowerCase();
+    const exceptionMessage: string =
+        message ?? decipherCode(contextEntity, serviceCode, payload);
 
-    const resMessage = `Error ${operation} ${contextEntity}s: ${exceptionMessage}!`;
+    const resMessage = `Error ${operation.toLowerCase()} ${contextEntity}s: ${exceptionMessage}!`;
 
     loggerService.setContext(context);
     if (UNEXPECTED_ERR_CODES.includes(serviceCode)) {
@@ -72,6 +78,6 @@ export const handleException = (
         if (exception?.stack) loggerService.error(exception.stack);
     } else loggerService.warn(resMessage);
 
-    const json: Res = { message: resMessage, payload: null };
+    const json: Res = { message: resMessage };
     return res.status(status).json(json);
 };

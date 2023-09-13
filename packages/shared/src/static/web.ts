@@ -8,13 +8,13 @@ const MIME_TYPE = {
 
 const SERVICE_CODE_STATUS_DICT: { [K in ServiceCode]: HttpStatus } = {
     BAD_REQUEST: HttpStatus.BAD_REQUEST,
-    FORBIDDEN: HttpStatus.FORBIDDEN,
     ER_DUP_ENTRY: HttpStatus.CONFLICT,
+    HTTP_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
     ER_NO_REFERENCED_ROW_2: HttpStatus.NOT_FOUND,
     NOT_FOUND: HttpStatus.NOT_FOUND,
     NOT_PROVIDED: HttpStatus.BAD_REQUEST,
     PASSWORDS_DONT_MATCH: HttpStatus.UNAUTHORIZED,
-    UNACCEPTABLE_EXT: HttpStatus.UNPROCESSABLE_ENTITY,
+    UNACCEPTABLE_EXT: HttpStatus.UNSUPPORTED_MEDIA_TYPE,
     NO_TOKEN: HttpStatus.UNAUTHORIZED,
     IP_CHANGED: HttpStatus.UNAUTHORIZED,
     NO_SESSION: HttpStatus.UNAUTHORIZED,
@@ -26,7 +26,6 @@ const SERVICE_CODE_STATUS_DICT: { [K in ServiceCode]: HttpStatus } = {
 const SERVICE_CODE_MESSAGE_DICT: {
     [K in ServiceCode]: (entity?: string) => string;
 } = {
-    FORBIDDEN: () => 'forbidden resource',
     BAD_REQUEST: (entity) => `incorrect ${entity}s request`,
     IP_CHANGED: () => 'ip change detected - please, sing in again',
     SESSION_EXPIRED: () => 'session expired - please, sign in again',
@@ -38,8 +37,9 @@ const SERVICE_CODE_MESSAGE_DICT: {
     NOT_PROVIDED: (entity) => `${entity} isn't provided`,
     ER_DUP_ENTRY: (entity) => `${entity} already exists`,
     ER_NO_REFERENCED_ROW_2: () => `referenced record doesn't exist`,
-    UNEXPECTED_ERROR: () => 'unexpected error',
+    HTTP_ERROR: () => `HTTP error`,
     UNEXPECTED_DB_ERROR: () => 'unexpected database error',
+    UNEXPECTED_ERROR: () => 'unexpected error',
 };
 
 export { MIME_TYPE, SERVICE_CODE_STATUS_DICT, SERVICE_CODE_MESSAGE_DICT };

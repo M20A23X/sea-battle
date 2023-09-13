@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm';
 import { EntityTarget } from 'typeorm/common/EntityTarget';
 import { ObjectLiteral } from 'typeorm/common/ObjectLiteral';
 
-import { CONNECTION_CHECK_INTERVAL } from '../static/globals';
+import { CONNECTION_CHECK_INTERVAL } from 'shared/static/specs';
 
 const initializeDataSource = async (dataSource: DataSource): Promise<void> => {
     return new Promise<void>((resolve) => {
@@ -17,7 +17,7 @@ const initializeDataSource = async (dataSource: DataSource): Promise<void> => {
 
 const truncateTable = async <E extends ObjectLiteral>(
     dataSource: DataSource,
-    entity: EntityTarget<E>,
+    entity: EntityTarget<E>
 ): Promise<void> => {
     await dataSource.query('SET FOREIGN_KEY_CHECKS=0');
     await dataSource.getRepository(entity).clear();

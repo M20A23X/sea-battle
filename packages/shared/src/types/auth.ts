@@ -1,4 +1,4 @@
-import { IUser, IUserPublicData } from './user';
+import { IUser, UserPublicData } from './user';
 
 interface IRefreshToken extends Pick<IUser, 'userId'> {
     token: string;
@@ -6,20 +6,20 @@ interface IRefreshToken extends Pick<IUser, 'userId'> {
     expirationDateTime: Date;
 }
 
-type TSignInData = Pick<IUser, 'username' | 'password'>;
+type SignInData = Pick<IUser, 'username' | 'password'>;
 
-type TAccessTokenRes = { accessToken: string };
-type TSignInRes = TAccessTokenRes & {
-    user: IUserPublicData;
+type AccessTokenRes = { accessToken: string };
+type SignInRes = AccessTokenRes & {
+    user: UserPublicData;
     refreshToken: string;
 };
 
-type TRefreshTokenRaw = Pick<IRefreshToken, 'token' | 'expirationDateTime'>;
+type RefreshTokenRaw = Pick<IRefreshToken, 'token' | 'expirationDateTime'>;
 
 export {
     IRefreshToken,
-    TSignInData,
-    TAccessTokenRes,
-    TSignInRes,
-    TRefreshTokenRaw,
+    SignInData,
+    AccessTokenRes,
+    SignInRes,
+    RefreshTokenRaw,
 };

@@ -14,9 +14,9 @@ import { LoggerService } from 'services/logger.service';
         ConfigModule.forRoot({ isGlobal: true }),
         HealthModule,
         UsersModule,
-        AuthModule,
+        AuthModule
     ],
-    providers: [LoggerService],
+    providers: [LoggerService]
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

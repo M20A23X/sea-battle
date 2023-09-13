@@ -1,34 +1,58 @@
-export const FORMAT = {
+const DATABASE = {
+    usersEntity: {
+        imgPath: { maxLength: 500 },
+        username: { minLength: 6, maxLength: 30 },
+        password: { minLength: 6, maxLength: 60 }
+    }
+};
+
+const SPECIAL_SYMBOLS = ` ~!@#$%^&*()_+\\-';:"<>,.?№=`;
+const {
+    usersEntity: {
+        username: {
+            minLength: usernameMinLength,
+            maxLength: usernameMaxLength
+        },
+        password: {
+            minLength: passwordMinLength,
+            maxLength: passwordMaxLength
+        },
+        imgPath: { maxLength: imgPathMaxLength }
+    }
+} = DATABASE;
+
+const FORMAT = {
     fallback: {
-        maxReadAmount: 10,
+        maxReadAmount: 10
     },
     usersSchema: {
         uuid: {
-            regex: /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i,
-            maxLength: 36,
+            regex: /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i
         },
-        jwt: {
-            regex: /^[\w-]+\.[\w-]+\.[\w-]+$/,
+        accessToken: {
+            regex: /^[\w-]+\.[\w-]+\.[\w-]+$/
         },
-        imgUrl: {
-            regex: /^http(s)?:\/\/.+$/,
-            maxLength: 500,
-            errorMessage: 'imgUrl must be valid url!',
+        imgPath: {
+            regex: new RegExp(`^(.+)\\/([^\\/]+){,${imgPathMaxLength}}$`),
+            errorMessage: 'imgPath must be valid path'
         },
         username: {
-            regex: /^[a-z0-9]+$/i,
-            errorMessage: 'username can contain only letters and numbers!',
-            minLength: 6,
-            maxLength: 30,
+            regex: new RegExp(
+                `^[a-z0-9]{${usernameMinLength},${usernameMaxLength}}$`,
+                'i'
+            ),
+            errorMessage:
+                'username should contain only letters and numbers and have length 6-30 symbols'
         },
         password: {
-            regex: /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\w)\w/,
+            regex: new RegExp(
+                `^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[${SPECIAL_SYMBOLS}])[a-zA-Z\\d${SPECIAL_SYMBOLS}]{${passwordMinLength},${passwordMaxLength}}$`
+            ),
             errorMessage:
-                'password must contain at least one uppercase letter, one lowercase letter, one number and one special character!',
-            minLength: 6,
-            maxLength: 60,
-        },
-    },
+                'password must contain at least one uppercase letter, one lowercase letter, one number, one special character and have length 6-60 symbols'
+        }
+    }
 };
 
 export const { fallback: FALLBACK, usersSchema: USERS_SCHEMA } = FORMAT;
+export const { usersEntity: USER_ENTITY } = DATABASE;

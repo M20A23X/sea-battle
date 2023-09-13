@@ -1,13 +1,13 @@
-import { SERVICE_CODE_MESSAGE_DICT } from '../static/web';
-import { ResPayload, ServiceCode } from 'types/requestResponse';
+import { SERVICE_CODE_MESSAGE_DICT } from 'static/web';
+import { MessagePayload, ServiceCode } from 'types/requestResponse';
 
-const stringifyResPayload = (payloadRaw: ResPayload) => {
+const stringifyMsgPayload = (payloadRaw: MessagePayload, sep = '') => {
     let payload = '';
 
     if (typeof payloadRaw === 'string') payload = payloadRaw;
     else if (typeof payloadRaw === 'object')
         payload = Object.entries(payloadRaw)
-            .map(([key, value]) => key.concat(` '${value}'`))
+            .map(([key, value]) => `${key}${sep} '${value}'`)
             .join(', ');
 
     return payload;
@@ -16,7 +16,7 @@ const stringifyResPayload = (payloadRaw: ResPayload) => {
 const decipherCode = (
     contextEntity: string,
     serviceCode: ServiceCode,
-    payloadRaw: ResPayload,
+    payloadRaw: MessagePayload,
 ): string => {
     let message = '';
     const isDefined: boolean = Object.keys(SERVICE_CODE_MESSAGE_DICT).includes(
@@ -25,8 +25,8 @@ const decipherCode = (
     if (isDefined)
         message = SERVICE_CODE_MESSAGE_DICT[serviceCode](contextEntity);
     if (payloadRaw)
-        message = message.concat(', ').concat(stringifyResPayload(payloadRaw));
+        message = message.concat(', ').concat(stringifyMsgPayload(payloadRaw));
     return message;
 };
 
-export { stringifyResPayload, decipherCode };
+export { stringifyMsgPayload, decipherCode };

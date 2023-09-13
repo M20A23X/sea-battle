@@ -1,42 +1,60 @@
+import { v4 } from 'uuid';
+import request, { Response } from 'supertest';
 import { HttpStatus, INestApplication, ValidationError } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { DataSource } from 'typeorm';
-import request, { Response } from 'supertest';
 
-import { IUser, IUserCreateData, IUserPublicData } from 'shared/types/user';
-import { Res } from 'shared/types/requestResponse';
+import { TestRes } from 'shared/types/specs';
 
 import { getQuery } from 'shared/utils/requestResponse.util';
 import {
     random,
+    RandomAction,
     randomizeAction,
-    randomRange,
-    randomString,
+    randomRange
 } from 'shared/utils/random.util';
 
 import { MIME_TYPE } from 'shared/static/web';
-import { IUserService, UserService } from '../src/services/user.service';
+import { DATA_AMOUNT, HOOK_TIMEOUT } from 'shared/static/specs';
+
 import {
-    ACTION_RANDOM_PERCENT,
-    DATA_AMOUNT,
-    HOOK_TIMEOUT,
-} from './static/globals';
+    UserDeleteData,
+    UserUpdateData,
+    IUser,
+    UserCreateData,
+    UserPublicData,
+    UsersReadData
+} from 'shared/types/user';
 
 import { initApp } from './utils/initApp';
 import { initializeDataSource, truncateTable } from './utils/dataSource';
-import { createUsers, createUsersCreateDTO, insertUsers } from './utils/users';
+import {
+    createUserCreateDTOs,
+    CreateUsers,
+    expandRegex,
+    requireCreateUsers,
+    USER_TEST_DATA
+} from './utils/users';
 
-import { USERS_SCHEMA } from 'static/format';
+import { IUserService, UserService } from 'services/user.service';
+
+import { USER_ENTITY, USERS_SCHEMA } from 'static/format';
 
 import { User } from 'modules/user/models/entities/user.entity';
 import { UserDTO } from 'modules/user/models/dtos/user.dto';
-import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
-import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
-import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
 import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
+import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
+import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
 
-const userDataArr: IUser[] = createUsers();
+const {
+    username: USERNAME,
+    password: PASSWORD,
+    imgPath: IMG_URL
+} = USERS_SCHEMA;
+
+const [createDTOsRaw, exCreateRes]: [UserCreateDTO[], TestRes[]] =
+    createUserCreateDTOs();
 const CREATE_ROUTE = '/users/create';
 const UPDATE_ROUTE = '/users/update';
 const DELETE_ROUTE = '/users/delete';
@@ -44,15 +62,17 @@ const DELETE_ROUTE = '/users/delete';
 describe('Users module tests.', () => {
     let app: INestApplication;
     let dataSource: DataSource;
-    let usersService: IUserService;
+    let createUsers: CreateUsers;
 
     ///--- Prepare ---///
 
     beforeAll(async () => {
-        const [initializedApp, moduleRef] = await initApp();
+        const [moduleRef, initializedApp] = await initApp();
         app = initializedApp;
         dataSource = moduleRef.get<DataSource>(DataSource);
-        usersService = moduleRef.get<IUserService>(UserService);
+        createUsers = requireCreateUsers(
+            moduleRef.get<IUserService>(UserService)
+        );
         await initializeDataSource(dataSource);
     }, HOOK_TIMEOUT);
     afterEach(async () => await truncateTable(dataSource, User), HOOK_TIMEOUT);
@@ -62,645 +82,422 @@ describe('Users module tests.', () => {
 
     ///--- UserDTO ---///
     it(
-        'Should prevent create UserDTOs with incorrect length of props',
+        'Should prevent create UserDTOs with incorrect props format',
         async () => {
-            const keys: (keyof UserDTO)[] = ['password', 'imgUrl', 'username'];
-            const reqArr: UserDTO[] = [];
-            const expectedResArr: number[] = [];
+            const [randomValue] = expandRegex(/^(\W){100}$/, 1);
+            const createActions: RandomAction<UserDTO, [UserDTO, number]>[] = [
+                (userDTORaw: UserDTO) => {
+                    const userDTO: UserDTO = {
+                        ...userDTORaw,
+                        userUUID: randomValue,
+                        username: randomValue,
+                        password: randomValue,
+                        imgPath: randomValue,
+                        currentPassword: randomValue,
+                        passwordConfirm: randomValue,
+                        startId: -2,
+                        endId: -1
+                    };
+                    return [userDTO, 7];
+                },
+                (userDTORaw: UserDTO) => {
+                    const userDTO: UserDTO = {
+                        ...userDTORaw,
+                        password: userDTORaw.password,
+                        passwordConfirm: expandRegex(PASSWORD.regex, 1)[0]
+                    };
+                    return [userDTO, 1];
+                },
+                (userDTORaw: UserDTO) => {
+                    const userDTO: UserDTO = {
+                        ...userDTORaw,
+                        startId: 2,
+                        endId: 1
+                    };
+                    return [userDTO, 1];
+                },
+                (userDTORaw: UserDTO) => [userDTORaw, 0]
+            ];
 
-            userDataArr.forEach(({ userId: _, ...userDto }) => {
-                const keyIndex: number = random(keys.length - 1);
-                const key = keys[keyIndex];
-                const schemaKey = USERS_SCHEMA[key];
+            const exErrorsAmounts: number[] = [];
+            const userDTOs: UserDTO[] = USER_TEST_DATA.username.map(
+                (username: string, index: number): UserDTO => {
+                    const password: string = USER_TEST_DATA.password[index];
+                    const startId: number = random(100, 1);
+                    const userDTORaw: UserDTO = {
+                        userUUID: v4(),
+                        username,
+                        password,
+                        imgPath: USER_TEST_DATA.imgPath[index],
+                        startId,
+                        endId: random(100, startId),
+                        currentPassword: password,
+                        passwordConfirm: password
+                    };
 
-                const value = randomString(schemaKey.maxLength, 0, true);
-                const changedUserDto = { ...userDto, [key]: value };
+                    const [userDTO, exErrorsAmount] = randomizeAction(
+                        createActions,
+                        [userDTORaw]
+                    );
+                    exErrorsAmounts.push(exErrorsAmount);
+                    return plainToInstance(UserDTO, userDTO);
+                }
+            );
 
-                const isCorrect: boolean =
-                    schemaKey?.length <= schemaKey?.maxLength &&
-                    changedUserDto[key]?.length >=
-                        (schemaKey?.minLength ?? 0) &&
-                    (schemaKey?.regex ?? /.*/).test(changedUserDto[key]);
-
-                expectedResArr.push(Number(!isCorrect));
-                reqArr.push(plainToInstance(UserDTO, userDto));
-            });
-
-            for (const [index, dto] of reqArr.entries()) {
+            for (const [index, dto] of userDTOs.entries()) {
+                const exErrorsAmount: number = exErrorsAmounts[index];
                 const errors: ValidationError[] = await validate(dto);
-                const expectedRes: number = expectedResArr[index];
-
-                if (expectedRes) {
-                    if (errors.length < expectedRes)
-                        console.info('Validation errors:', errors);
-                    expect(errors.length).toBeGreaterThanOrEqual(expectedRes);
-                } else expect(errors.length).toStrictEqual(expectedRes);
+                if (errors.length !== exErrorsAmount) {
+                    console.info('Expected errors amount: ', exErrorsAmount);
+                    console.info('Errors: ', errors);
+                }
+                expect(errors.length).toEqual(exErrorsAmount);
             }
         },
-        HOOK_TIMEOUT,
+        HOOK_TIMEOUT
     );
 
     ///--- /POST CREATE ---///
     it(
-        '/POST CREATE: should successfully create a new users',
+        '/POST CREATE users: should create/prevent create users with same username',
         async () => {
-            const expectedResArr: Res[] = [];
-            const reqArr: UserCreateDTO[] = createUsersCreateDTO(userDataArr);
+            const createActions: RandomAction<
+                number,
+                [UserCreateDTO, TestRes]
+            >[] = [
+                (index: number) => {
+                    if (!index)
+                        return [createDTOsRaw[index], exCreateRes[index]];
 
-            reqArr.forEach((dto: UserCreateDTO) => {
-                const expectedRes: Res = {
-                    message: `Successfully create users, username '${dto.user.username}'`,
-                    payload: null,
-                };
-                expectedResArr.push(expectedRes);
-            });
+                    const duplicatedUsername: string =
+                        createDTOsRaw[0].user.username;
+                    const createDTO: UserCreateData = {
+                        ...createDTOsRaw[index].user,
+                        username: duplicatedUsername
+                    };
+                    const exResp: TestRes = {
+                        message: `Error create users: user already exists, username '${duplicatedUsername}'!`,
+                        status: HttpStatus.CONFLICT
+                    };
+                    return [{ user: createDTO }, exResp];
+                },
+                (index: number) => [createDTOsRaw[index], exCreateRes[index]]
+            ];
 
-            for (const [resIndex, dto] of reqArr.entries()) {
+            const exRes: TestRes[] = [];
+            const createDTOs: UserCreateDTO[] = createDTOsRaw.map(
+                (_, index: number): UserCreateDTO => {
+                    const [createDTO, exResp] = randomizeAction<
+                        number,
+                        [UserCreateDTO, TestRes]
+                    >(createActions, [index]);
+                    exRes.push(exResp);
+                    return createDTO;
+                }
+            );
+
+            for (const [index, dto] of createDTOs.entries()) {
+                const exResp: TestRes = exRes[index];
                 const res: Response = await request(app.getHttpServer())
                     .post(CREATE_ROUTE)
                     .set('Content-type', MIME_TYPE.applicationJson)
                     .set('Accepts', MIME_TYPE.applicationJson)
                     .send(dto);
 
-                if (res.statusCode !== HttpStatus.CREATED) {
-                    console.info(`Read request:`, dto);
-                    console.info(`Read response:`, res.body);
+                if (res.statusCode !== exResp.status) {
+                    console.info(`Create request:`, dto);
+                    console.info(`Create response:`, res.body);
                 }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(HttpStatus.CREATED);
+                expect(res.body?.message).toStrictEqual(exResp.message);
+                expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT,
+        HOOK_TIMEOUT
     );
 
     ///--- /GET READ ---///
     it(
-        '/GET READ: should successfully get users with similar usernames OR by range',
+        '/GET READ users: should get with similar usernames OR by range/prevent get for non existent',
         async () => {
-            const reqArr: UsersReadDTO[] = [];
-            const expectedResArr: Res<IUserPublicData[]>[] = [];
-
-            const createReqArr: UserCreateDTO[] =
-                createUsersCreateDTO(userDataArr);
-            createReqArr.forEach((dto: UserCreateDTO) => {
-                const user: IUserCreateData = dto.user;
-                const readDto: UsersReadDTO = new UsersReadDTO();
-                let readUsers: IUser[] = [];
-                randomizeAction(
-                    ACTION_RANDOM_PERCENT,
-                    () => {
-                        const [startId, endId] = randomRange(
-                            user.username.length,
-                            USERS_SCHEMA.username.minLength,
-                        );
-                        readDto.username =
-                            user.username.slice(startId, endId) ||
-                            user.username;
-                        readUsers = readDto?.username.length
-                            ? userDataArr.filter((u: IUser) =>
-                                  u.username.includes(readDto?.username || ''),
-                              )
-                            : [];
-                    },
-                    () => {
-                        const [startId, endId] = randomRange(DATA_AMOUNT, 1);
-                        readDto.startId = startId;
-                        readDto.endId = endId;
-                        readUsers = userDataArr.slice(startId - 1, endId);
-                    },
-                );
-                const expectedResPayload: IUserPublicData[] = readUsers.map(
-                    (u: IUser): IUserPublicData => {
-                        const { userId: _, password: __, ...rest } = u;
-                        return { ...rest, userUUID: '' };
-                    },
-                );
-                let expectedRes: Res<IUserPublicData[]>;
-                if (expectedResPayload.length) {
-                    expectedRes = {
-                        message: `Successfully read users, amount '${expectedResPayload.length}'`,
-                        payload: expectedResPayload,
-                    };
-                } else {
-                    expectedRes = {
-                        message: `Error read users: no users found!`,
-                        payload: null,
-                    };
-                }
-
-                expectedResArr.push(expectedRes);
-                reqArr.push(readDto);
-            });
-
-            for (const dto of createReqArr) {
-                await request(app.getHttpServer())
-                    .post(CREATE_ROUTE)
-                    .send(dto)
-                    .expect(HttpStatus.CREATED);
-            }
-            for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = expectedResArr[resIndex]
-                    .payload?.length
-                    ? HttpStatus.OK
-                    : HttpStatus.NOT_FOUND;
-
-                const res: Response = await request(app.getHttpServer())
-                    .get('/users/read')
-                    .query(getQuery(dto));
-
-                if (res.statusCode !== expectedStatus) {
-                    console.info(`Read request:`, dto);
-                    console.info(`Read response:`, res.body);
-                }
-
-                const payloadMapped: IUserPublicData[] | null =
-                    res.body.payload?.map(
-                        (p: IUserPublicData): IUserPublicData => ({
-                            ...p,
-                            userUUID: '',
-                        }),
-                    ) || null;
-                const resMapped: Res<IUserPublicData[]> = {
-                    message: res.body.message,
-                    payload: payloadMapped,
-                };
-                expect(resMapped).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(expectedStatus);
-            }
-        },
-        HOOK_TIMEOUT,
-    );
-
-    it(
-        '/GET READ: should get 404 status because of no exist usernames NOR ids',
-        async () => {
-            const reqArr: UsersReadDTO[] = [];
-            const expectedResArr: Res<IUserPublicData[]>[] = [];
-
-            const createReqArr: UserCreateDTO[] = userDataArr.map(
-                (dto: IUser): UserCreateDTO => {
-                    const { userUUID: _, userId: __, ...rest } = dto;
-                    const readDto: UsersReadDTO = new UsersReadDTO();
-                    randomizeAction(
-                        ACTION_RANDOM_PERCENT,
-                        () => {
-                            readDto.username = randomString(
-                                USERS_SCHEMA.username.maxLength,
-                                USERS_SCHEMA.username.minLength,
-                            );
-                        },
-                        () => {
-                            readDto.startId = DATA_AMOUNT + 1;
-                            readDto.endId = DATA_AMOUNT * 2;
-                        },
+            type ActionReturn = [UsersReadData, UserPublicData[]];
+            const readActions: RandomAction<UserPublicData, ActionReturn>[] = [
+                (user: UserPublicData) => {
+                    const [startId, endId] = randomRange(
+                        USER_ENTITY.username.maxLength,
+                        0
                     );
-                    const resPayloadRaw =
-                        readDto.userUUID ?? readDto.username ?? '';
-                    let resPayload = '';
-                    if (resPayloadRaw.length)
-                        resPayload = ", qualifier '"
-                            .concat(resPayloadRaw)
-                            .concat("'");
-                    const expectedRes: Res<IUserPublicData[]> = {
-                        message: `Error read users: no users found${resPayload}!`,
-                        payload: null,
-                    };
-
-                    expectedResArr.push(expectedRes);
-                    reqArr.push(readDto);
-                    return {
-                        user: { ...rest, passwordConfirm: rest.password },
-                    };
+                    const searchUsername: string =
+                        user.username.length >= endId - startId &&
+                        endId - startId >= USER_ENTITY.username.minLength
+                            ? user.username.slice(startId, endId)
+                            : user.username;
+                    const readUsers: UserPublicData[] = users.filter(
+                        (u: UserPublicData) =>
+                            u.username.includes(searchUsername)
+                    );
+                    const readDTO: UsersReadData = { username: searchUsername };
+                    return [readDTO, readUsers];
                 },
+                () => {
+                    const [randomUsername] = expandRegex(USERNAME.regex, 1);
+                    const readDTO: UsersReadData = { username: randomUsername };
+                    return [readDTO, []];
+                },
+                () => {
+                    const [startId, endId] = randomRange(
+                        2 * DATA_AMOUNT,
+                        DATA_AMOUNT + 1
+                    );
+                    const readDTO: UsersReadData = { startId, endId };
+                    return [readDTO, []];
+                }
+            ];
+
+            const users: UserPublicData[] = await createUsers(
+                createDTOsRaw,
+                false
+            );
+            const exRes: TestRes<UserPublicData[] | void>[] = [];
+            const readDTOs: UsersReadData[] = users.map(
+                (user: UserPublicData): UsersReadData => {
+                    const [readDTO, readUsers] = randomizeAction<
+                        UserPublicData,
+                        ActionReturn
+                    >(readActions, [user]);
+
+                    let exResp: TestRes<UserPublicData[] | void>;
+                    if (readUsers.length) {
+                        exResp = {
+                            message: `Successfully read users, amount '${readUsers.length}'`,
+                            payload: readUsers,
+                            status: HttpStatus.OK
+                        };
+                    } else {
+                        const qualifier: string | undefined =
+                            readDTO.userUUID ?? readDTO.username;
+                        const qualifierPayload = qualifier
+                            ? `, qualifier '${qualifier}'`
+                            : '';
+                        exResp = {
+                            message: `Error read users: no users found${qualifierPayload}!`,
+                            status: HttpStatus.NOT_FOUND
+                        };
+                    }
+
+                    exRes.push(exResp);
+                    return readDTO;
+                }
             );
 
-            for (const dto of createReqArr) {
-                const res: Response = await request(app.getHttpServer())
-                    .post(CREATE_ROUTE)
-                    .send(dto);
-
-                if (res.statusCode !== HttpStatus.CREATED) {
-                    console.info(`Create request:`, dto);
-                    console.info(`Create response:`, res.body);
-                }
-                expect(res.statusCode).toEqual(HttpStatus.CREATED);
-            }
-
-            for (const [resIndex, dto] of reqArr.entries()) {
+            for (const [index, dto] of readDTOs.entries()) {
+                const exResp: TestRes<UserPublicData | void> = exRes[index];
                 const res: Response = await request(app.getHttpServer())
                     .get('/users/read')
                     .query(getQuery(dto));
 
-                if (res.statusCode !== HttpStatus.NOT_FOUND) {
+                if (res.statusCode !== exResp.status) {
                     console.info(`Read request:`, dto);
                     console.info(`Read response:`, res.body);
                 }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(HttpStatus.NOT_FOUND);
+
+                if (exResp?.['payload']) {
+                    const resPayload: UserPublicData[] | undefined = res.body
+                        ?.payload as UserPublicData[];
+                    expect(resPayload !== undefined).toEqual(true);
+
+                    resPayload.forEach(({ userUUID }: UserPublicData): void => {
+                        expect(USERS_SCHEMA.uuid.regex.test(userUUID)).toEqual(
+                            true
+                        );
+                    });
+                }
+                expect(res.body?.message).toStrictEqual(exResp.message);
+                expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT,
+        HOOK_TIMEOUT
     );
 
     ///--- /PUT UPDATE ---///
     it(
-        '/PUT UPDATE: should successfully update users info',
+        '/PUT UPDATE users: should update/prevent update with incorrect UUID/password confirmation',
         async () => {
-            const [createReqArr, readRes]: [
-                UserCreateDTO[],
-                Res<IUserPublicData[]>,
-            ] = await insertUsers(userDataArr, usersService);
+            type ActionArgs = { updateDTORaw: UserUpdateDTO; user: IUser };
+            type ActionReturn = [UserUpdateDTO, TestRes<UserPublicData | void>];
+            const updateActions: RandomAction<ActionArgs, ActionReturn>[] = [
+                ({ updateDTORaw: { user: updateUserData }, user }) => {
+                    const updateUserEntries: [string, IUser[keyof IUser]][] =
+                        Object.entries(user).map(([key, value]) => [
+                            key,
+                            updateUserData[key] ? updateUserData[key] : value
+                        ]);
 
-            const expectedResArr: Res<IUserPublicData>[] = [];
-            const reqArr: UserUpdateDTO[] = (readRes.payload || []).map(
-                (u: IUserPublicData, index: number) => {
-                    const updateDto: UserUpdateDTO = new UserUpdateDTO();
-                    const updateUserPassword: string = randomString(
-                        USERS_SCHEMA.password.maxLength,
-                        USERS_SCHEMA.password.minLength,
-                    );
-                    updateDto.user = {
-                        userUUID: u.userUUID,
-                        username: randomString(
-                            USERS_SCHEMA.username.maxLength,
-                            USERS_SCHEMA.username.minLength,
-                        ),
-                        password: updateUserPassword,
-                        passwordConfirm: updateUserPassword,
-                        currentPassword: createReqArr[index].user.password,
-                        imgUrl: randomString(USERS_SCHEMA.imgUrl.maxLength),
-                    };
-
-                    const updatedUser: IUser = new User();
-                    updatedUser.userUUID = u.userUUID;
-                    updatedUser.username = updateDto.user?.username || '';
-                    updatedUser.imgUrl = updateDto.user?.imgUrl || '';
                     const {
                         userId: _,
                         password: __,
-                        ...updatedUserPublic
-                    } = updatedUser;
-                    const expectedRes: Res<IUserPublicData> = {
-                        message: `Successfully update users, uuid '${updatedUser.userUUID}'`,
-                        payload: updatedUserPublic,
+                        ...userPublicData
+                    } = Object.fromEntries(updateUserEntries) as any as IUser;
+
+                    const exResp: TestRes<UserPublicData> = {
+                        message: `Successfully update users, uuid '${user.userUUID}'`,
+                        payload: userPublicData,
+                        status: HttpStatus.OK
                     };
-                    expectedResArr.push(expectedRes);
-                    return updateDto;
+                    return [{ user: { ...updateUserData } }, exResp];
                 },
-            );
-
-            for (const [resIndex, dto] of reqArr.entries()) {
-                const res: Response = await request(app.getHttpServer())
-                    .put(UPDATE_ROUTE)
-                    .send(dto);
-
-                if (res.statusCode !== HttpStatus.OK) {
-                    console.info(`Update request:`, dto);
-                    console.info(`Update response:`, res.body);
-                }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(HttpStatus.OK);
-            }
-        },
-        HOOK_TIMEOUT,
-    );
-
-    it(
-        '/PUT UPDATE: should prevent update users with incorrect UUID',
-        async () => {
-            const [createReqArr, readRes]: [
-                UserCreateDTO[],
-                Res<IUserPublicData[]>,
-            ] = await insertUsers(userDataArr, usersService);
-
-            const expectedResArr: Res<IUserPublicData>[] = [];
-            const reqArr: UserUpdateDTO[] = (readRes.payload || []).map(
-                (u: IUserPublicData, index: number) => {
-                    const updateUserPassword: string = randomString(
-                        USERS_SCHEMA.password.maxLength,
-                        USERS_SCHEMA.password.minLength,
-                    );
-                    const updateDto: UserUpdateDTO = new UserUpdateDTO();
-                    updateDto.user = {
-                        userUUID: randomizeAction(
-                            ACTION_RANDOM_PERCENT,
-                            () => u.userUUID,
-                            () =>
-                                randomString(
-                                    USERS_SCHEMA.uuid.maxLength,
-                                    USERS_SCHEMA.uuid.maxLength,
-                                ),
-                        ),
-                        username: randomString(
-                            USERS_SCHEMA.username.maxLength,
-                            USERS_SCHEMA.username.minLength,
-                        ),
-                        password: updateUserPassword,
-                        passwordConfirm: updateUserPassword,
-                        currentPassword: createReqArr[index].user.password,
-                        imgUrl: randomString(USERS_SCHEMA.imgUrl.maxLength),
+                ({ updateDTORaw: { user } }) => {
+                    const updateDTO: UserUpdateData = {
+                        userUUID: user.userUUID,
+                        currentPassword: expandRegex(PASSWORD.regex, 1)[0]
                     };
+                    const exResp: TestRes = {
+                        message: `Error update users: passwords don't match, uuid '${updateDTO.userUUID}'!`,
+                        status: HttpStatus.UNAUTHORIZED
+                    };
+                    return [{ user: updateDTO }, exResp];
+                },
+                ({ updateDTORaw: { user } }) => {
+                    const updateDTO: UserUpdateData = {
+                        userUUID: v4(),
+                        currentPassword: user.currentPassword
+                    };
+                    const exResp: TestRes = {
+                        message: `Error read users: no users found, qualifier '${updateDTO.userUUID}'!`,
+                        status: HttpStatus.NOT_FOUND
+                    };
+                    return [{ user: updateDTO }, exResp];
+                }
+            ];
 
-                    const updatedUser: IUser = new User();
-                    updatedUser.userUUID = updateDto.user.userUUID;
-                    updatedUser.username = updateDto.user?.username || '';
-                    updatedUser.imgUrl = updateDto.user?.imgUrl || '';
-                    const {
-                        userId: _,
-                        password: __,
-                        ...updatedUserPublic
-                    } = updatedUser;
-                    let expectedRes: Res<IUserPublicData>;
-                    if (updateDto.user.userUUID === u.userUUID) {
-                        expectedRes = {
-                            message: `Successfully update users, uuid '${updatedUser.userUUID}'`,
-                            payload: updatedUserPublic,
-                        };
-                    } else {
-                        expectedRes = {
-                            message: `Error read users: no users found, qualifier '${updatedUser.userUUID}'!`,
-                            payload: null,
-                        };
+            const users: IUser[] = await createUsers(createDTOsRaw, true);
+            const updateDTOsRaw: UserUpdateDTO[] = users.map((user: IUser) => {
+                const [password] = expandRegex(PASSWORD.regex, 1);
+                return {
+                    user: {
+                        userUUID: user.userUUID,
+                        username: expandRegex(USERNAME.regex, 1)[0],
+                        password,
+                        passwordConfirm: password,
+                        currentPassword: user.password,
+                        imgPath: expandRegex(IMG_URL.regex, 1)[0]
                     }
-                    expectedResArr.push(expectedRes);
-                    return updateDto;
-                },
+                };
+            });
+
+            const exRes: TestRes<IUser | void>[] = [];
+            const updateDTOs: UserUpdateDTO[] = updateDTOsRaw.map(
+                (updateDTORaw: UserUpdateDTO, index: number): UserUpdateDTO => {
+                    const [updateDTO, exResp] = randomizeAction<
+                        ActionArgs,
+                        ActionReturn
+                    >(updateActions, [{ updateDTORaw, user: users[index] }]);
+
+                    exRes.push(exResp);
+                    return updateDTO;
+                }
             );
 
-            for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = expectedResArr[resIndex]
-                    .payload
-                    ? HttpStatus.OK
-                    : HttpStatus.NOT_FOUND;
-
+            for (const [index, dto] of updateDTOs.entries()) {
+                const exResp: TestRes<UserPublicData | void> = exRes[index];
                 const res: Response = await request(app.getHttpServer())
                     .put(UPDATE_ROUTE)
                     .send(dto);
 
-                if (res.statusCode !== expectedStatus) {
+                if (res.statusCode !== exResp.status) {
                     console.info(`Update request:`, dto);
                     console.info(`Update response:`, res.body);
                 }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(expectedStatus);
-            }
-        },
-        HOOK_TIMEOUT,
-    );
-
-    it(
-        '/PUT UPDATE: should reject update users with incorrect current password confirmation',
-        async () => {
-            const [createReqArr, readRes]: [
-                UserCreateDTO[],
-                Res<IUserPublicData[]>,
-            ] = await insertUsers(userDataArr, usersService);
-
-            const expectedResArr: Res<IUserPublicData>[] = [];
-            const reqArr: UserUpdateDTO[] = (readRes.payload || []).map(
-                (u, index) => {
-                    const updateDto: UserUpdateDTO = new UserUpdateDTO();
-                    const updatePassword: string = randomString(
-                        USERS_SCHEMA.password.maxLength,
-                        USERS_SCHEMA.password.minLength,
-                    );
-                    const currentPassword: string =
-                        createReqArr[index].user.password;
-
-                    updateDto.user = {
-                        userUUID: u.userUUID,
-                        username: randomString(
-                            USERS_SCHEMA.username.maxLength,
-                            USERS_SCHEMA.username.minLength,
-                        ),
-                        password: updatePassword,
-                        passwordConfirm: updatePassword,
-                        currentPassword: randomizeAction(
-                            ACTION_RANDOM_PERCENT,
-                            () => createReqArr[index].user.password,
-                            () =>
-                                randomString(
-                                    USERS_SCHEMA.password.maxLength,
-                                    USERS_SCHEMA.username.minLength,
-                                ),
-                        ),
-                        imgUrl: randomString(USERS_SCHEMA.imgUrl.maxLength),
-                    };
-
-                    let expectedRes: Res<IUserPublicData>;
-                    if (updateDto.user.currentPassword === currentPassword) {
-                        const updatedUser: IUser = new User();
-                        updatedUser.userUUID = u.userUUID;
-                        updatedUser.username = updateDto.user?.username || '';
-                        updatedUser.imgUrl = updateDto.user?.imgUrl || '';
-                        const {
-                            userId: _,
-                            password: __,
-                            ...updatedUserPublic
-                        } = updatedUser;
-
-                        expectedRes = {
-                            message: `Successfully update users, uuid '${updatedUser.userUUID}'`,
-                            payload: updatedUserPublic,
-                        };
-                    } else {
-                        expectedRes = {
-                            message: `Error update users: passwords don't match, uuid '${u.userUUID}'!`,
-                            payload: null,
-                        };
-                    }
-                    expectedResArr.push(expectedRes);
-                    return updateDto;
-                },
-            );
-
-            for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = expectedResArr[resIndex]
-                    .payload
-                    ? HttpStatus.OK
-                    : HttpStatus.UNAUTHORIZED;
-
-                const res: Response = await request(app.getHttpServer())
-                    .put(UPDATE_ROUTE)
-                    .send(dto);
-
-                if (res.statusCode !== expectedStatus) {
-                    console.info(`Update request:`, dto);
-                    console.info(`Update response:`, res.body);
+                if (exResp?.['payload']) {
+                    const exPayload = exResp?.['payload'] as UserPublicData;
+                    expect(res.body?.payload).toStrictEqual(exPayload);
                 }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(expectedStatus);
+                expect(res.body?.message).toStrictEqual(exResp.message);
+                expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT,
+        HOOK_TIMEOUT
     );
 
     ///--- /DELETE ---///
     it(
-        '/DELETE: should successfully delete users',
+        '/DELETE users: should delete/prevent delete with incorrect UUID/password confirmation',
         async () => {
-            const [createReqArr, readRes]: [
-                UserCreateDTO[],
-                Res<IUserPublicData[]>,
-            ] = await insertUsers(userDataArr, usersService);
-
-            const expectedResArr: Res[] = [];
-            const reqArr: UserDeleteDTO[] = (readRes.payload || []).map(
-                (u: IUserPublicData, index: number) => {
-                    const deleteDto: UserDeleteDTO = new UserDeleteDTO();
-                    deleteDto.userUUID = u.userUUID;
-                    deleteDto.currentPassword =
-                        createReqArr[index].user.password;
-
-                    const expectedRes: Res = {
-                        message: `Successfully delete users, uuid '${deleteDto.userUUID}'`,
-                        payload: null,
-                    };
-                    expectedResArr.push(expectedRes);
-                    return deleteDto;
-                },
-            );
-
-            for (const [resIndex, dto] of reqArr.entries()) {
-                const res: Response = await request(app.getHttpServer())
-                    .delete(DELETE_ROUTE)
-                    .query(getQuery(dto));
-
-                if (res.statusCode !== HttpStatus.OK) {
-                    console.info(`Delete request:`, dto);
-                    console.info(`Delete response:`, res.body);
-                }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(HttpStatus.OK);
-            }
-        },
-        HOOK_TIMEOUT,
-    );
-
-    it(
-        '/DELETE: should prevent delete users with incorrect UUID',
-        async () => {
-            const [createReqArr, readRes]: [
-                UserCreateDTO[],
-                Res<IUserPublicData[]>,
-            ] = await insertUsers(userDataArr, usersService);
-
-            const expectedResArr: Res[] = [];
-            const reqArr: UserDeleteDTO[] = (readRes.payload || []).map(
-                (u, index) => {
-                    const deleteDto: UserDeleteDTO = new UserDeleteDTO();
-                    deleteDto.userUUID = randomizeAction(
-                        ACTION_RANDOM_PERCENT,
-                        () => u.userUUID,
-                        () =>
-                            randomString(
-                                USERS_SCHEMA.uuid.maxLength,
-                                USERS_SCHEMA.uuid.maxLength,
-                            ),
-                    );
-                    deleteDto.currentPassword =
-                        createReqArr[index].user.password;
-
-                    let expectedRes: Res;
-                    if (deleteDto.userUUID === u.userUUID) {
-                        expectedRes = {
-                            message: `Successfully delete users, uuid '${deleteDto.userUUID}'`,
-                            payload: null,
+            type ActionReturn = [UserDeleteData, TestRes];
+            const deleteActions: RandomAction<UserDeleteData, ActionReturn>[] =
+                [
+                    (deleteData: UserDeleteData) => {
+                        const deleteDTO: UserDeleteData = {
+                            userUUID: deleteData.userUUID,
+                            currentPassword: deleteData.currentPassword
                         };
-                    } else {
-                        expectedRes = {
-                            message: `Error read users: no users found, qualifier '${deleteDto.userUUID}'!`,
-                            payload: null,
+                        const exResp: TestRes = {
+                            message: `Successfully delete users, uuid '${deleteDTO.userUUID}'`,
+                            status: HttpStatus.OK
                         };
+                        return [deleteDTO, exResp];
+                    },
+                    (deleteData: UserDeleteData) => {
+                        const randomUUID: string = v4();
+                        const deleteDTO: UserDeleteData = {
+                            userUUID: randomUUID,
+                            currentPassword: deleteData.currentPassword
+                        };
+                        const exResp: TestRes = {
+                            message: `Error read users: no users found, qualifier '${randomUUID}'!`,
+                            status: HttpStatus.NOT_FOUND
+                        };
+                        return [deleteDTO, exResp];
+                    },
+                    (deleteData: UserDeleteData) => {
+                        const deleteDTO: UserDeleteData = {
+                            userUUID: deleteData.userUUID,
+                            currentPassword: expandRegex(PASSWORD.regex, 1)[0]
+                        };
+                        const exResp: TestRes = {
+                            message: `Error delete users: passwords don't match, uuid '${deleteDTO.userUUID}'!`,
+                            status: HttpStatus.UNAUTHORIZED
+                        };
+                        return [deleteDTO, exResp];
                     }
-                    expectedResArr.push(expectedRes);
-                    return deleteDto;
-                },
-            );
+                ];
 
-            for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = /no users found/.test(
-                    expectedResArr[resIndex].message,
-                )
-                    ? HttpStatus.NOT_FOUND
-                    : HttpStatus.OK;
-
-                const res: Response = await request(app.getHttpServer())
-                    .delete(DELETE_ROUTE)
-                    .query(getQuery(dto));
-
-                if (res.statusCode !== expectedStatus) {
-                    console.info(`Delete request:`, dto);
-                    console.info(`Delete response:`, res.body);
-                }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(expectedStatus);
-            }
-        },
-        HOOK_TIMEOUT,
-    );
-
-    it(
-        '/DELETE: should prevent delete users with incorrect password confirmation',
-        async () => {
-            const [createReqArr, readRes]: [
-                UserCreateDTO[],
-                Res<IUserPublicData[]>,
-            ] = await insertUsers(userDataArr, usersService);
-
-            const expectedResArr: Res[] = [];
-            const reqArr: UserDeleteDTO[] = (readRes.payload || []).map(
-                (u, index) => {
-                    const currentPassword = createReqArr[index].user.password;
-                    const deleteDto: UserDeleteDTO = new UserDeleteDTO();
-                    deleteDto.userUUID =
-                        readRes.payload?.[index].userUUID || '';
-                    deleteDto.currentPassword = randomizeAction(
-                        ACTION_RANDOM_PERCENT,
-                        () => currentPassword,
-                        () =>
-                            randomString(
-                                USERS_SCHEMA.password.maxLength,
-                                USERS_SCHEMA.password.minLength,
-                            ),
-                    );
-
-                    let expectedRes: Res;
-                    if (deleteDto.currentPassword === currentPassword) {
-                        expectedRes = {
-                            message: `Successfully delete users, uuid '${deleteDto.userUUID}'`,
-                            payload: null,
-                        };
-                    } else {
-                        expectedRes = {
-                            message: `Error delete users: passwords don't match, uuid '${deleteDto.userUUID}'!`,
-                            payload: null,
-                        };
+            const users: IUser[] = await createUsers(createDTOsRaw, true);
+            const deleteDTOsRaw: UserDeleteDTO[] = users.map(
+                (user: IUser): UserDeleteDTO => ({
+                    user: {
+                        userUUID: user.userUUID,
+                        currentPassword: user.password
                     }
-                    expectedResArr.push(expectedRes);
-                    return deleteDto;
-                },
+                })
             );
 
-            for (const [resIndex, dto] of reqArr.entries()) {
-                const expectedStatus: HttpStatus = /passwords don't match/.test(
-                    expectedResArr[resIndex].message,
-                )
-                    ? HttpStatus.UNAUTHORIZED
-                    : HttpStatus.OK;
+            const exRes: TestRes[] = [];
+            const deleteDTOs: UserDeleteDTO[] = deleteDTOsRaw.map(
+                (deleteDTORaw: UserDeleteDTO) => {
+                    const [deleteDTO, exResp] = randomizeAction<
+                        UserDeleteData,
+                        ActionReturn
+                    >(deleteActions, [deleteDTORaw.user]);
 
+                    exRes.push(exResp);
+                    return { user: deleteDTO };
+                }
+            );
+
+            for (const [index, dto] of deleteDTOs.entries()) {
+                const exResp: TestRes = exRes[index];
                 const res: Response = await request(app.getHttpServer())
                     .delete(DELETE_ROUTE)
-                    .query(getQuery(dto));
+                    .send(dto);
 
-                if (res.statusCode !== expectedStatus) {
+                if (res.statusCode !== exResp.status) {
                     console.info(`Delete request:`, dto);
                     console.info(`Delete response:`, res.body);
                 }
-                expect(res.body).toStrictEqual(expectedResArr[resIndex]);
-                expect(res.statusCode).toEqual(expectedStatus);
+                expect(res.body?.message).toStrictEqual(exResp.message);
+                expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT,
+        HOOK_TIMEOUT
     );
 });

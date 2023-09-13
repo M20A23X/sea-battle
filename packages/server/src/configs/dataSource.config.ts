@@ -14,7 +14,7 @@ export const DataSourceProvider: Provider = {
     provide: DataSource,
     useFactory: async () => {
         const loggerService: ILoggerService = new LoggerService(
-            'DataSourceProvider',
+            'DataSourceProvider'
         );
 
         const dataSource: DataSource = new DataSource({
@@ -25,7 +25,7 @@ export const DataSourceProvider: Provider = {
             password: process.env.DATABASE_PASSWORD,
             database: process.env.DATABASE_NAME || DATABASE_NAME,
             entities: ENTITIES,
-            synchronize: process.env.NODE_ENV !== NODE_ENV_PROD,
+            synchronize: process.env.NODE_ENV !== NODE_ENV_PROD
         });
         loggerService.debug(dataSource.options);
 
@@ -49,5 +49,5 @@ export const DataSourceProvider: Provider = {
             }
         }
         return dataSource;
-    },
+    }
 };

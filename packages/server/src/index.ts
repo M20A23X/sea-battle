@@ -18,7 +18,7 @@ async function bootstrap() {
         logger:
             process.env.NODE_ENV !== NODE_ENV_PROD
                 ? ['log', 'error', 'warn', 'debug', 'verbose']
-                : ['log', 'error', 'warn'],
+                : ['log', 'error', 'warn']
     });
 
     const loggerService: ILoggerService = app.get(LoggerService);

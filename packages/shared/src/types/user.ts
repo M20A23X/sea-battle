@@ -5,35 +5,35 @@ interface IUser {
     userUUID: string;
     username: string;
     password: string;
-    imgUrl: string;
+    imgPath: string;
 }
 
-type IUserPublicData = Omit<IUser, 'userId' | 'password'>;
-type TUserReqDTO<V> = Req<`user`, V>;
+type UserPublicData = Omit<IUser, 'userId' | 'password'>;
+type UserReqDTO<V> = Req<`user`, V>;
 
-type IUserCreateData = Omit<IUser, 'userId' | 'userUUID'> & {
+type UserCreateData = Omit<IUser, 'userId' | 'userUUID'> & {
     passwordConfirm: string;
 };
-type IUserUpdateData = Pick<IUser, 'userUUID'> & {
+type UserUpdateData = Pick<IUser, 'userUUID'> & {
     currentPassword: string;
 } & Partial<
         Pick<
-            IUserCreateData,
-            'username' | 'password' | 'imgUrl' | 'passwordConfirm'
+            UserCreateData,
+            'username' | 'password' | 'imgPath' | 'passwordConfirm'
         >
     >;
-type IUsersReadData = Partial<Pick<IUser, 'userUUID' | 'username'>> & {
-    startId: number;
+type UsersReadData = Partial<Pick<IUser, 'userUUID' | 'username'>> & {
+    startId?: number;
     endId?: number;
 };
-type IUserDeleteData = Pick<IUserUpdateData, 'userUUID' | 'currentPassword'>;
+type UserDeleteData = Pick<UserUpdateData, 'userUUID' | 'currentPassword'>;
 
 export type {
     IUser,
-    IUserPublicData,
-    IUserCreateData,
-    IUsersReadData,
-    IUserUpdateData,
-    IUserDeleteData,
-    TUserReqDTO,
+    UserPublicData,
+    UserCreateData,
+    UsersReadData,
+    UserUpdateData,
+    UserDeleteData,
+    UserReqDTO,
 };

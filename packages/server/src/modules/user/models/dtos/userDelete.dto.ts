@@ -1,7 +1,20 @@
-import { PickType } from '@nestjs/swagger';
-import { IUserDeleteData } from 'shared/types/user';
-import { UserUpdateData } from 'modules/user/models/dtos/userUpdate.dto';
+import { ApiProperty, PickType } from '@nestjs/swagger';
+import { IsObject, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class UserDeleteDTO
-    extends PickType(UserUpdateData, ['userUUID', 'currentPassword'])
-    implements IUserDeleteData {}
+import { UserDeleteData, UserReqDTO } from 'shared/types/user';
+import { UserDTO } from './user.dto';
+
+class Data
+    extends PickType(UserDTO, ['userUUID', 'currentPassword'])
+    implements UserDeleteData {}
+
+class UserDeleteDTO implements UserReqDTO<UserDeleteData> {
+    @ApiProperty({ type: () => Data })
+    @IsObject()
+    @ValidateNested()
+    @Type(() => Data)
+    public user: UserDeleteData;
+}
+
+export { UserDeleteDTO };

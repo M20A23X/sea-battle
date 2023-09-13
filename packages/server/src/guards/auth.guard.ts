@@ -5,7 +5,7 @@ import {
     CanActivate,
     ExecutionContext,
     Inject,
-    Injectable,
+    Injectable
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
@@ -15,7 +15,7 @@ import { JWT_ALGORITHM } from 'shared/static/common';
 export class AuthGuard implements CanActivate {
     constructor(
         @Inject(JwtService)
-        private _jwtService: JwtService,
+        private _jwtService: JwtService
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -27,8 +27,8 @@ export class AuthGuard implements CanActivate {
             request.user = await this._jwtService.verifyAsync(token, {
                 secret: process.env.JWT_SECRET,
                 algorithms: [
-                    (process.env.JWT_ALGORITHM as Algorithm) || JWT_ALGORITHM,
-                ],
+                    (process.env.JWT_ALGORITHM as Algorithm) || JWT_ALGORITHM
+                ]
             });
         } catch {
             return false;

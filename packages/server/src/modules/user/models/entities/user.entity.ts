@@ -3,14 +3,14 @@ import {
     Entity,
     Generated,
     PrimaryGeneratedColumn,
-    Unique,
+    Unique
 } from 'typeorm';
 
 import { IUser } from 'shared/types/user';
 
-import { USERS_SCHEMA } from '../../../../static/format';
+import { USER_ENTITY } from 'static/format';
 
-const { username, password, imgUrl } = USERS_SCHEMA;
+const { username, password, imgPath } = USER_ENTITY;
 
 @Entity({ name: 'tbl_users' })
 export class User implements IUser {
@@ -28,6 +28,6 @@ export class User implements IUser {
     @Column({ type: 'varchar', length: password.maxLength })
     public password: string;
 
-    @Column({ type: 'varchar', length: imgUrl.maxLength })
-    public imgUrl: string;
+    @Column({ type: 'varchar', length: imgPath.maxLength })
+    public imgPath: string;
 }

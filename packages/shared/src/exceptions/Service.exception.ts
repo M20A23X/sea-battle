@@ -1,17 +1,17 @@
-import { ResPayload, ServiceCode } from 'types/requestResponse';
+import { MessagePayload, ServiceCode } from 'types/requestResponse';
 
 export class ServiceException extends Error {
     public readonly code: ServiceCode;
     public readonly operation: string;
     public readonly context: string;
     public readonly entity: string;
-    public readonly payload: ResPayload;
+    public readonly payload: MessagePayload;
 
     constructor(
         operation: string,
         context: string,
         entity: string,
-        payload: ResPayload = undefined,
+        payload: MessagePayload = undefined,
         serviceCode: ServiceCode = 'UNEXPECTED_ERROR',
     ) {
         super(serviceCode);

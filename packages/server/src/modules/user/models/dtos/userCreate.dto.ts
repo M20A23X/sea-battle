@@ -1,37 +1,24 @@
-import {
-    IsNotEmpty,
-    IsObject,
-    IsString,
-    ValidateIf,
-    ValidateNested,
-} from 'class-validator';
+import { IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
 
-import { IUserCreateData, TUserReqDTO } from 'shared/types/user';
+import { UserCreateData, UserReqDTO } from 'shared/types/user';
 
 import { UserDTO } from './user.dto';
 
-import { IsEqualTo } from 'decorators/IsEqualTo';
+class Data
+    extends PickType(UserDTO, [
+        'username',
+        'password',
+        'passwordConfirm',
+        'imgPath'
+    ] as const)
+    implements UserCreateData {}
 
-export class UserCreateData
-    extends OmitType(UserDTO, ['userUUID'] as const)
-    implements IUserCreateData
-{
-    @ApiProperty()
-    @IsString()
-    @IsNotEmpty()
-    @ValidateIf((o: UserCreateData) => !!o.password)
-    @IsEqualTo('password' as keyof UserCreateData, {
-        message: 'passwords must match!',
-    })
-    public passwordConfirm: string;
-}
-
-export class UserCreateDTO implements TUserReqDTO<UserCreateData> {
-    @ApiProperty({ type: () => UserCreateData })
+export class UserCreateDTO implements UserReqDTO<UserCreateData> {
+    @ApiProperty({ type: () => Data })
     @IsObject()
     @ValidateNested()
-    @Type(() => UserCreateData)
+    @Type(() => Data)
     public user: UserCreateData;
 }
