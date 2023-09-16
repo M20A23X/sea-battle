@@ -1,0 +1,19 @@
+{
+  "name": "shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --build && tsc-alias",
+    "format": "prettier --write src/",
+    "lint": "eslint src/",
+    "lint:fix": "eslint --fix src/",
+    "pre-commit": "lint-staged",
+    "start:dev": "tsc-watch --build --onSuccess \"tsc-alias\""
+  },
+  "dependencies": {
+    "@nestjs/common": "^9.4.3",
+    "@nestjs/jwt": "^10.1.1",
+    "mysql2": "^3.6.1"
+  }
+}

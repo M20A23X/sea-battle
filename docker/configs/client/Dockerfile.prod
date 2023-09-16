@@ -6,6 +6,7 @@ RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
     --mount=type=bind,source=.yarnrc,target=.yarnrc \
     --mount=type=bind,source=.yarn,target=.yarn \
     --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=packages/shared/package.json,target=packages/shared/package.json \
     --mount=type=bind,source=packages/client/package.json,target=packages/client/package.json \
     --mount=type=bind,source=yarn.lock,target=yarn.lock \
     yarn install --frozen-lockfile --non-interactive --ignore-scripts
@@ -18,10 +19,11 @@ RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
     --mount=type=bind,source=lerna.json,target=lerna.json \
     --mount=type=bind,source=.eslintrc,target=.eslintrc \
     --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=packages/shared/package.json,target=packages/shared/package.json \
+    --mount=type=bind,source=packages/shared/tsconfig.json,target=packages/shared/tsconfig.json \
     --mount=type=bind,source=packages/client/package.json,target=packages/client/package.json \
     --mount=type=bind,source=packages/client/config-overrides.cjs,target=packages/client/config-overrides.cjs \
     --mount=type=bind,source=packages/client/tsconfig.json,target=packages/client/tsconfig.json \
-    --mount=type=bind,source=packages/shared/tsconfig.json,target=packages/shared/tsconfig.json \
     --mount=type=bind,source=packages/client/.eslintrc.cjs,target=packages/client/.eslintrc.cjs \
      yarn build --scope=client
 

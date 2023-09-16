@@ -12,6 +12,7 @@ env:
   BRANCH_DEV: ${{ vars.BRANCH_DEV }}
   CLIENT_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:client
   CLIENT_IP: ${{ vars.CLIENT_IP }}
+  CONNECTION_CHECK_INTERVAL_MS: ${{ vars.CONNECTION_CHECK_INTERVAL_MS }}
   DATABASE_IP: ${{ vars.DATABASE_IP }}
   DATABASE_NAME: ${{ vars.DATABASE_NAME }}
   DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
@@ -30,9 +31,11 @@ env:
   SERVER_IP: ${{ vars.SERVER_IP }}
   SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
   SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
+  SPECS_DATA_AMOUNT: ${{ vars.SPECS_DATA_AMOUNT }}
+  SPECS_HOOK_TIMEOUT_MS: ${{ vars.SPECS_HOOK_TIMEOUT_MS }}
   SSH_HOST: ${{ secrets.SSH_HOST }}
   SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-  SSH_PORT: ${{ secrets.SSH_PORT }}
+  SSH_PORT: ${{ vars.SSH_PORT }}
   SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
 jobs:
   check:
