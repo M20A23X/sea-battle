@@ -8,6 +8,12 @@ module.exports = {
   },
   settings: {
     "import/resolver": {
+      alias: {
+        map: [
+          ["#", "src/"]
+        ],
+        extensions: [".ts"]
+      },
       typescript: {
         extensions: [".ts"],
         moduleDirectory: [".", "src/"]

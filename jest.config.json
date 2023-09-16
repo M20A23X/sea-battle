@@ -11,7 +11,8 @@
   "moduleNameMapper": {
     "^uuid$": "uuid",
     "^typeorm$": "typeorm",
-    "^shared/(.+)": "<rootDir>/../shared/dist/src/$1"
+    "^#shared/(.+)": "<rootDir>/../shared/dist/src/$1",
+    "^#/(.+)": "<rootDir>/src/$1"
   },
   "testRegex": ".*\\.(e2e-)?spec\\.tsx?$",
   "transform": {

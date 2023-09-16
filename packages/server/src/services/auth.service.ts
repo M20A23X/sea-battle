@@ -1,30 +1,39 @@
-import process from 'process';
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-import { PromiseRes, Res, ServiceCode } from 'shared/types/requestResponse';
-import { IRefreshToken, AccessTokenRes, SignInRes } from 'shared/types/auth';
-import { IUser, UserPublicData } from 'shared/types/user';
-
-import { decipherCode } from 'shared/utils/decipherError.util';
 import {
-    getServiceCode,
+    IUser,
+    IRefreshToken,
+    AccessTokenRes,
+    SignInRes,
+    Res,
+    PromiseRes,
+    ServiceCode,
+    UserPublicData
+} from '#shared/types';
+
+import {
     GetUnSuccessRes,
-    requireGetRes
-} from 'shared/utils/requestResponse.util';
-import { signJwtToken } from 'shared/utils/auth.util';
-
-import { ILoggerService, LoggerService } from './logger.service';
-import { IUserService, UserService } from './user.service';
-
-import { createRefreshToken } from 'utils/auth.util';
-
-import { User } from 'modules/user/models/entities/user.entity';
+    decipherCode,
+    getServiceCode,
+    requireGetRes,
+    signJwtToken
+} from '#shared/utils';
+import { createRefreshToken } from '#/utils';
 
 import {
     IRefreshTokenRepository,
     RefreshTokenRepository
-} from 'repositories/refreshToken.repository';
+} from '#/repositories';
+
+import {
+    ILoggerService,
+    LoggerService,
+    IUserService,
+    UserService
+} from '#/services';
+
+import { User } from '#/modules/user';
 
 export interface IAuthService {
     signIn(

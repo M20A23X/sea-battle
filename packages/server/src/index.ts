@@ -1,17 +1,17 @@
-import * as process from 'process';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 
-import { NODE_ENV_PROD } from 'shared/static/common';
-import { PORT } from 'static/common';
+import { NODE_ENV_PROD } from '#shared/static';
+import { PORT } from '#/static';
 
-import { validationConfig } from 'configs/validation.config';
+import { validationConfig } from '#/configs';
 
-import { ExceptionLoggerFilter } from 'filters/exceptionLogger.filter';
+import { ExceptionLoggerFilter } from '#/filters';
 
-import { AppModule } from 'modules/app.module';
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { ILoggerService, LoggerService } from '#/services/logger.service';
+
+import { AppModule } from '#/app.module';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {

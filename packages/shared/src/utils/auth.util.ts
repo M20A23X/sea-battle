@@ -1,12 +1,11 @@
-import process from 'process';
 import { Request } from 'express';
 import { Algorithm } from 'jsonwebtoken';
 import { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-import { EnvError } from 'exceptions/EnvError';
+import { EnvException } from '../exceptions/Env.exception';
 
-import { JWT_ALGORITHM } from 'static/common';
+import { JWT_ALGORITHM } from '../static';
 
 const extractToken = (request: Request): string | undefined => {
     const [type, token]: string[] =
@@ -16,10 +15,10 @@ const extractToken = (request: Request): string | undefined => {
 
 const checkAccess = async (
     verifyAsyncJwt: JwtService['verifyAsync'],
-    context: ExecutionContext,
+    context: ExecutionContext
 ): Promise<boolean> => {
     const jwtSecret: string | undefined = process.env.JWT_SECRET;
-    if (!jwtSecret) throw new EnvError('JWT secret is not set!');
+    if (!jwtSecret) throw new EnvException('JWT secret is not set!');
 
     const request = context.switchToHttp().getRequest();
     const token: string | undefined = extractToken(request);
@@ -29,8 +28,8 @@ const checkAccess = async (
         request.user = await Function.prototype.call(verifyAsyncJwt, token, {
             secret: jwtSecret,
             algorithms: [
-                (process.env.JWT_ALGORITHM as Algorithm) || JWT_ALGORITHM,
-            ],
+                (process.env.JWT_ALGORITHM as Algorithm) || JWT_ALGORITHM
+            ]
         });
     } catch {
         return false;
@@ -42,7 +41,7 @@ const signJwtToken = async (
     jwtService: JwtService,
     secret: string,
     userId: number,
-    username: string,
+    username: string
 ): Promise<string> =>
     await jwtService.signAsync({ userId, username }, { secret });
 

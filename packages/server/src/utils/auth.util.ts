@@ -1,9 +1,8 @@
-import process from 'process';
 import { v4 } from 'uuid';
 
-import { RefreshTokenRaw } from 'shared/types/auth';
+import { RefreshTokenRaw } from '#shared/types';
 
-import { REFRESH_TOKEN_EXPIRE_TIME_MS } from 'shared/static/common';
+import { REFRESH_TOKEN_EXPIRE_TIME_MS } from '#shared/static';
 
 const createRefreshToken = (): RefreshTokenRaw => {
     const jwtRefreshExpireTime =

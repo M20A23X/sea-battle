@@ -1,5 +1,5 @@
-import { IUser, UserPublicData } from 'shared/types/user';
+import { IUser, UserPublicData } from '#shared/types';
 
-type ReadType<T> = T extends true ? IUser : UserPublicData;
+type UsersRead<T> = T extends true ? IUser : UserPublicData;
 
-export type { ReadType };
+export type { UsersRead };

@@ -35,5 +35,5 @@ export type {
     UsersReadData,
     UserUpdateData,
     UserDeleteData,
-    UserReqDTO,
+    UserReqDTO
 };

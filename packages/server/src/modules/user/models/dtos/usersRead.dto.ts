@@ -1,5 +1,5 @@
 import { PartialType, PickType } from '@nestjs/swagger';
-import { UsersReadData } from 'shared/types/user';
+import { UsersReadData } from '#shared/types';
 import { UserDTO } from './user.dto';
 
 class UsersReadDTO

@@ -1,7 +1,7 @@
 import { Inject, NestMiddleware } from '@nestjs/common';
-import { NextFunction, Request } from 'express';
-import { Response } from 'supertest';
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { NextFunction, Request, Response } from 'express';
+
+import { ILoggerService, LoggerService } from '#/services';
 
 export class LogHttpRequestMiddleware implements NestMiddleware {
     constructor(

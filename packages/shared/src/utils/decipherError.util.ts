@@ -1,5 +1,5 @@
-import { SERVICE_CODE_MESSAGE_DICT } from 'static/web';
-import { MessagePayload, ServiceCode } from 'types/requestResponse';
+import { MessagePayload, ServiceCode } from '../types';
+import { SERVICE_CODE_MESSAGE_DICT } from '../static';
 
 const stringifyMsgPayload = (payloadRaw: MessagePayload, sep = '') => {
     let payload = '';
@@ -16,11 +16,11 @@ const stringifyMsgPayload = (payloadRaw: MessagePayload, sep = '') => {
 const decipherCode = (
     contextEntity: string,
     serviceCode: ServiceCode,
-    payloadRaw: MessagePayload,
+    payloadRaw: MessagePayload
 ): string => {
     let message = '';
     const isDefined: boolean = Object.keys(SERVICE_CODE_MESSAGE_DICT).includes(
-        serviceCode,
+        serviceCode
     );
     if (isDefined)
         message = SERVICE_CODE_MESSAGE_DICT[serviceCode](contextEntity);

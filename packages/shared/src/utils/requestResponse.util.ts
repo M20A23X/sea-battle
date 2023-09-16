@@ -2,36 +2,27 @@ import { Request } from 'express';
 import { QueryError } from 'mysql2';
 import { ConsoleLogger } from '@nestjs/common';
 
-import { ServiceException } from 'exceptions/Service.exception';
+import { Operation, PromiseRes, MessagePayload, ServiceCode } from '#/types';
 
-import { stringifyMsgPayload } from './decipherError.util';
-import {
-    Operation,
-    PromiseRes,
-    MessagePayload,
-    ServiceCode,
-} from 'types/requestResponse';
+import { ServiceException } from '#/exceptions';
+
+import { stringifyMsgPayload } from '#/utils';
 
 type GetSuccessRes = <P = void>(
     resPayload?: MessagePayload,
     payload?: P,
-    entity?: string,
+    entity?: string
 ) => PromiseRes<P>;
 type GetUnSuccessRes = (
     serviceCode?: ServiceCode,
     resPayload?: MessagePayload,
-    entity?: string,
+    entity?: string
 ) => ServiceException;
 
 const getContextEntity = (context: string): string => {
     const entityLastChar: number = context.search(/[A-Za-z][A-Z][a-z]/);
     return context.slice(0, entityLastChar + 1);
 };
-
-const getQuery = <T extends object>(dto: T) =>
-    Object.entries(dto)
-        .map(([key, value]) => key.concat('=').concat(value))
-        .join('&');
 
 const getServiceCode = (error: unknown): ServiceCode | undefined =>
     (error as QueryError)?.code as ServiceCode;
@@ -43,9 +34,9 @@ const logRequestInfo = (logger: ConsoleLogger, req: Request): void => {
             ip,
             method,
             originalUrl,
-            httpVersion,
+            httpVersion
         },
-        ':',
+        ':'
     );
     logger.log.call(logger, reqString);
 };
@@ -53,7 +44,7 @@ const logRequestInfo = (logger: ConsoleLogger, req: Request): void => {
 const requireGetRes = (serviceContext: string) => {
     return (
         operationCode: Operation,
-        methodEntity?: string,
+        methodEntity?: string
     ): [GetSuccessRes, GetUnSuccessRes] => {
         const operation = operationCode
             .toLowerCase()
@@ -66,7 +57,7 @@ const requireGetRes = (serviceContext: string) => {
         const getSuccessRes = async <P = void>(
             resPayload: MessagePayload = undefined,
             payload?: P,
-            entity?: string,
+            entity?: string
         ): PromiseRes<P> => {
             const contextEntity1: string = (
                 entity ?? contextEntity0
@@ -83,7 +74,7 @@ const requireGetRes = (serviceContext: string) => {
         const getUnSuccessRes = (
             serviceCode: ServiceCode = 'UNEXPECTED_ERROR',
             resPayload: MessagePayload = undefined,
-            entity?: string,
+            entity?: string
         ): ServiceException => {
             const contextEntity1: string = (
                 entity ?? contextEntity0
@@ -93,7 +84,7 @@ const requireGetRes = (serviceContext: string) => {
                 serviceContext,
                 contextEntity1,
                 resPayload,
-                serviceCode,
+                serviceCode
             );
         };
 
@@ -102,10 +93,4 @@ const requireGetRes = (serviceContext: string) => {
 };
 
 export type { GetSuccessRes, GetUnSuccessRes };
-export {
-    getContextEntity,
-    getQuery,
-    getServiceCode,
-    logRequestInfo,
-    requireGetRes,
-};
+export { getContextEntity, getServiceCode, logRequestInfo, requireGetRes };

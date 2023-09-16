@@ -1,9 +1,9 @@
 import { HttpStatus } from '@nestjs/common';
-import { ServiceCode } from 'types/requestResponse';
+import { ServiceCode } from '#/types';
 
 const MIME_TYPE = {
     applicationJson: 'application/json',
-    multipartFormData: 'multipart/form-data',
+    multipartFormData: 'multipart/form-data'
 };
 
 const SERVICE_CODE_STATUS_DICT: { [K in ServiceCode]: HttpStatus } = {
@@ -20,7 +20,7 @@ const SERVICE_CODE_STATUS_DICT: { [K in ServiceCode]: HttpStatus } = {
     NO_SESSION: HttpStatus.UNAUTHORIZED,
     SESSION_EXPIRED: HttpStatus.UNAUTHORIZED,
     UNEXPECTED_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
-    UNEXPECTED_DB_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
+    UNEXPECTED_DB_ERROR: HttpStatus.INTERNAL_SERVER_ERROR
 };
 
 const SERVICE_CODE_MESSAGE_DICT: {
@@ -39,7 +39,7 @@ const SERVICE_CODE_MESSAGE_DICT: {
     ER_NO_REFERENCED_ROW_2: () => `referenced record doesn't exist`,
     HTTP_ERROR: () => `HTTP error`,
     UNEXPECTED_DB_ERROR: () => 'unexpected database error',
-    UNEXPECTED_ERROR: () => 'unexpected error',
+    UNEXPECTED_ERROR: () => 'unexpected error'
 };
 
 export { MIME_TYPE, SERVICE_CODE_STATUS_DICT, SERVICE_CODE_MESSAGE_DICT };

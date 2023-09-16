@@ -40,11 +40,11 @@
     "rootDir": ".",
     "baseUrl": "src/",
     "paths": {
-      "*": [
-        "./*"
+      "#/*": [
+        "*"
       ],
-      "shared*": [
-        "../../shared/dist/src/*",
+      "#shared/*": [
+        "../../shared/dist/src/*"
       ]
     }
   }

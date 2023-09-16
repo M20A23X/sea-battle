@@ -24,7 +24,7 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "strictBindCallApply": false,
+    "strictBindCallApply": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
     "moduleResolution": "NodeNext",
@@ -33,10 +33,10 @@
     "rootDir": ".",
     "baseUrl": "src/",
     "paths": {
-      "*": [
+      "#/*": [
         "*"
       ],
-      "shared/*": [
+      "#shared/*": [
         "../../shared/dist/src/*"
       ]
     }

@@ -8,9 +8,16 @@ module.exports = {
   },
   settings: {
     "import/resolver": {
+      alias: {
+        map: [
+          ["#/", "src/"],
+          ["#shared", "../shared/src/"]
+        ],
+        extensions: [".ts"]
+      },
       typescript: {
         extensions: [".ts"],
-        moduleDirectory: [".", "src/", "node_modules/"]
+        moduleDirectory: [".", "src/", "../shared/"]
       }
     }
   }

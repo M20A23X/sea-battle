@@ -1,22 +1,19 @@
-import process from 'process';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 
-import { JWT_EXPIRE_TIME_S } from 'shared/static/common';
+import { JWT_EXPIRE_TIME_S } from '#shared/static';
 
-import { validationConfig } from 'configs/validation.config';
+import { validationConfig } from '#/configs/validation.config';
 
-import { ExceptionLoggerFilter } from 'filters/exceptionLogger.filter';
+import { ExceptionLoggerFilter } from '#/filters/exceptionLogger.filter';
 
-import { RefreshTokenRepository } from 'repositories/refreshToken.repository';
+import { AuthModule, DataSourceModule, UsersModule } from '#/modules';
 
-import { LoggerService } from 'services/logger.service';
+import { RefreshTokenRepository } from '#/repositories/refreshToken.repository';
 
-import { AuthModule } from 'modules/auth/auth.module';
-import { DataSourceModule } from 'modules/dataSource.module';
-import { UsersModule } from 'modules/user/users.module';
+import { LoggerService } from '#/services/logger.service';
 
 export const initApp = async (): Promise<[TestingModule, INestApplication]> => {
     const moduleRef: TestingModule = await Test.createTestingModule({

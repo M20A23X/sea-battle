@@ -33,7 +33,7 @@ const FORMAT = {
             regex: /^[\w-]+\.[\w-]+\.[\w-]+$/
         },
         imgPath: {
-            regex: new RegExp(`^(.+)\\/([^\\/]+){,${imgPathMaxLength}}$`),
+            regex: new RegExp(`^(.+)\\/([^\\/]+){0,${imgPathMaxLength}}$`),
             errorMessage: 'imgPath must be valid path'
         },
         username: {

@@ -15,19 +15,20 @@ import {
     ApiQuery
 } from '@nestjs/swagger';
 
-import { PromiseRes } from 'shared/types/requestResponse';
-import { UserPublicData } from 'shared/types/user';
+import { PromiseRes, UserPublicData } from '#shared/types';
 
-import { MIME_TYPE } from 'shared/static/web';
+import { MIME_TYPE } from '#shared/static';
 
-import { TUserReadDbQualifier } from 'repositories/user.repository';
+import { TUserReadDbQualifier } from '#/repositories';
 
-import { UserService } from 'services/user.service';
+import { UserService } from '#/services';
 
-import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
-import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
-import { UsersReadDTO } from 'modules/user/models/dtos/usersRead.dto';
-import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
+import {
+    UserCreateDTO,
+    UsersReadDTO,
+    UserUpdateDTO,
+    UserDeleteDTO
+} from '#/modules/user';
 
 export interface IUserController {
     postCreateUser(body: UserCreateDTO): PromiseRes;

@@ -1,4 +1,4 @@
-import { MessagePayload, ServiceCode } from 'types/requestResponse';
+import { MessagePayload, ServiceCode } from '#/types';
 
 export class ServiceException extends Error {
     public readonly code: ServiceCode;
@@ -12,7 +12,7 @@ export class ServiceException extends Error {
         context: string,
         entity: string,
         payload: MessagePayload = undefined,
-        serviceCode: ServiceCode = 'UNEXPECTED_ERROR',
+        serviceCode: ServiceCode = 'UNEXPECTED_ERROR'
     ) {
         super(serviceCode);
         this.operation = operation;

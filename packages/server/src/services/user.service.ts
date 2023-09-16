@@ -1,29 +1,27 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import {
+    IUser,
     PromiseRes,
     Res,
+    ServiceCode,
     MessagePayload,
-    ServiceCode
-} from 'shared/types/requestResponse';
-import {
-    getServiceCode,
-    requireGetRes
-} from 'shared/utils/requestResponse.util';
-import {
-    IUser,
     UserCreateData,
     UserPublicData,
     UserUpdateData
-} from 'shared/types/user';
+} from '#shared/types';
 
-import { ReadType } from 'types/user';
+import { getServiceCode, requireGetRes } from '#shared/utils';
+
+import { UsersRead } from '#/types';
+
+import { hashPassword } from '#/utils';
+
 import {
     IUserRepository,
     TUserReadDbQualifier,
     UserRepository
-} from 'repositories/user.repository';
-import { hashPassword } from 'utils/hashPassword.util';
+} from '#/repositories';
 
 export interface IUserService {
     createUser(data: UserCreateData): PromiseRes;
@@ -32,7 +30,7 @@ export interface IUserService {
         qualifier: TUserReadDbQualifier,
         requirePrivate: T,
         precise?: boolean
-    ): PromiseRes<ReadType<T>[]>;
+    ): PromiseRes<UsersRead<T>[]>;
 
     updateUser(data: UserUpdateData): PromiseRes<UserPublicData>;
 
@@ -94,7 +92,7 @@ export class UserService implements IUserService {
         qualifier: TUserReadDbQualifier,
         requirePrivate: T,
         precise = false
-    ): PromiseRes<ReadType<T>[]> {
+    ): PromiseRes<UsersRead<T>[]> {
         const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('READ');
 
         let readResRaw: any;
@@ -122,7 +120,7 @@ export class UserService implements IUserService {
         const isCorrect: boolean =
             typeof readResRaw?.[0]?.userUUID === 'string';
         if (!isCorrect) throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
-        readRes = readResRaw as ReadType<T>[];
+        readRes = readResRaw as UsersRead<T>[];
 
         return getSuccessRes({ amount: readRes.length }, readRes);
     }

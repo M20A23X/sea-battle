@@ -17,13 +17,13 @@ import {
     UserCreateData,
     UsersReadData,
     UserUpdateData
-} from 'shared/types/user';
+} from '#shared/types';
 
-import { FALLBACK, USERS_SCHEMA } from 'static/format';
+import { FALLBACK, USERS_SCHEMA } from '#/static';
 
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { ILoggerService, LoggerService } from '#/services';
 
-import { User } from 'modules/user/models/entities/user.entity';
+import { User } from '#/modules/user';
 
 export type TUserReadDbQualifier =
     | string

@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm';
 import { EntityTarget } from 'typeorm/common/EntityTarget';
 import { ObjectLiteral } from 'typeorm/common/ObjectLiteral';
 
-import { CONNECTION_CHECK_INTERVAL } from 'shared/static/specs';
+import { CONNECTION_CHECK_INTERVAL_MS } from '#shared/static';
 
 const initializeDataSource = async (dataSource: DataSource): Promise<void> => {
     return new Promise<void>((resolve) => {
@@ -11,7 +11,7 @@ const initializeDataSource = async (dataSource: DataSource): Promise<void> => {
                 clearInterval(interval);
                 return resolve();
             }
-        }, CONNECTION_CHECK_INTERVAL).unref();
+        }, CONNECTION_CHECK_INTERVAL_MS).unref();
     });
 };
 

@@ -21,5 +21,5 @@ export {
     SignInData,
     AccessTokenRes,
     SignInRes,
-    RefreshTokenRaw,
+    RefreshTokenRaw
 };

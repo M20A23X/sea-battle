@@ -4,42 +4,43 @@ import { HttpStatus, INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 import {
-    AccessTokenRes,
+    IUser,
     IRefreshToken,
+    AccessTokenRes,
     SignInData,
-    SignInRes
-} from 'shared/types/auth';
-import { IUser } from 'shared/types/user';
-import { TestRes } from 'shared/types/specs';
+    SignInRes,
+    TestRes
+} from '#shared/types';
 
-import { HOOK_TIMEOUT } from 'shared/static/specs';
-import { MIME_TYPE } from 'shared/static/web';
+import { RandomAction, randomizeAction } from '#shared/utils';
 
-import { RandomAction, randomizeAction } from 'shared/utils/random.util';
-import { initApp } from './utils/initApp';
-import { initializeDataSource, truncateTable } from './utils/dataSource';
+import { SPECS_HOOK_TIMEOUT_MS, MIME_TYPE } from '#shared/static';
+
 import {
+    SignInUsers,
+    CreateUsers,
+    initApp,
+    initializeDataSource,
+    truncateTable,
     createSignInDTOs,
     requireSignInUsers,
-    SignInUsers
-} from './utils/auth';
-import {
     createUserCreateDTOs,
-    CreateUsers,
     expandRegex,
     requireCreateUsers
-} from './utils/users';
+} from './utils';
 
-import { USERS_SCHEMA } from 'static/format';
+import { USERS_SCHEMA } from '#/static';
 
-import { RefreshTokenRepository } from 'repositories/refreshToken.repository';
-import { IUserService, UserService } from 'services/user.service';
-import { AuthService, IAuthService } from 'services/auth.service';
+import { RefreshTokenRepository } from '#/repositories';
+import {
+    IUserService,
+    UserService,
+    AuthService,
+    IAuthService
+} from '#/services';
 
-import { SignInDTO } from 'modules/auth/models/dtos/signIn.dto';
-import { RefreshToken } from 'modules/auth/models/entities/refreshToken.entity';
-import { User } from 'modules/user/models/entities/user.entity';
-import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
+import { SignInDTO, RefreshToken } from '#/modules/auth';
+import { User, UserCreateDTO } from '#/modules/user';
 
 type RefreshTokenHeaders = Pick<IRefreshToken, 'token'> & AccessTokenRes;
 
@@ -72,12 +73,12 @@ describe('Auth module tests.', () => {
         );
 
         await initializeDataSource(dataSource);
-    }, HOOK_TIMEOUT);
+    }, SPECS_HOOK_TIMEOUT_MS);
     afterEach(async () => {
         await truncateTable(dataSource, RefreshToken);
         await truncateTable(dataSource, User);
-    }, HOOK_TIMEOUT);
-    afterAll(async () => await dataSource.destroy(), HOOK_TIMEOUT);
+    }, SPECS_HOOK_TIMEOUT_MS);
+    afterAll(async () => await dataSource.destroy(), SPECS_HOOK_TIMEOUT_MS);
 
     ///--- Cases ---///
 
@@ -182,7 +183,7 @@ describe('Auth module tests.', () => {
                 expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT
+        SPECS_HOOK_TIMEOUT_MS
     );
 
     ///--- /GET REFRESH ---///
@@ -304,6 +305,6 @@ describe('Auth module tests.', () => {
                 expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT
+        SPECS_HOOK_TIMEOUT_MS
     );
 });

@@ -9,16 +9,11 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-import {
-    UserCreateData,
-    UsersReadData,
-    UserUpdateData
-} from 'shared/types/user';
+import { UserCreateData, UsersReadData, UserUpdateData } from '#shared/types';
 
-import { IsBiggerThanOrEqual } from 'decorators/IsBiggerThanOrEqual';
-import { IsEqualTo } from 'decorators/IsEqualTo';
+import { USERS_SCHEMA } from '#/static/format';
 
-import { USERS_SCHEMA } from 'static/format';
+import { IsBiggerThanOrEqual, IsEqualTo } from '#/decorators';
 
 const { username, password, imgPath } = USERS_SCHEMA;
 

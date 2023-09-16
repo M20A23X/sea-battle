@@ -1,32 +1,31 @@
-import { Res } from 'shared/types/requestResponse';
-
-import { DATA_AMOUNT } from 'shared/static/specs';
-
 import { expandN } from 'regex-to-strings';
-import { TestData, TestRes } from 'shared/types/specs';
 import { HttpStatus } from '@nestjs/common';
-import { UserCreateData } from 'shared/types/user';
 
-import { ReadType } from 'types/user';
-import { USERS_SCHEMA } from 'static/format';
+import { Res, TestData, TestRes, UserCreateData } from '#shared/types';
 
-import { IUserService } from 'services/user.service';
-import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
+import { SPECS_DATA_AMOUNT } from '#shared/static';
+
+import { UsersRead } from '#/types';
+
+import { USERS_SCHEMA } from '#/static';
+
+import { IUserService } from '#/services';
+import { UserCreateDTO } from '#/modules/user';
 
 type UserTestData = Omit<UserCreateData, 'passwordConfirm'>;
 type CreateUsers = <T extends boolean>(
     createDTOs: UserCreateDTO[],
     requirePrivate: T
-) => Promise<ReadType<T>[]>;
+) => Promise<UsersRead<T>[]>;
 
 const { username, password, imgPath } = USERS_SCHEMA;
 const expandRegex = (regex: RegExp, amount: number): string[] =>
     expandN(regex, amount);
 
 const USER_TEST_DATA: TestData<UserTestData> = {
-    username: expandRegex(username.regex, DATA_AMOUNT),
-    password: expandRegex(password.regex, DATA_AMOUNT),
-    imgPath: expandRegex(imgPath.regex, DATA_AMOUNT)
+    username: expandRegex(username.regex, SPECS_DATA_AMOUNT),
+    password: expandRegex(password.regex, SPECS_DATA_AMOUNT),
+    imgPath: expandRegex(imgPath.regex, SPECS_DATA_AMOUNT)
 };
 
 const createUserCreateDTOs = (): [UserCreateDTO[], TestRes[]] => {
@@ -57,13 +56,13 @@ const requireCreateUsers =
     async <T extends boolean>(
         createDTOs: UserCreateDTO[],
         requirePrivate: T
-    ): Promise<ReadType<T>[]> => {
+    ): Promise<UsersRead<T>[]> => {
         for (const u of createDTOs) await usersService.createUser(u.user);
-        const readRes: Res<ReadType<T>[]> = await usersService.readUsers(
-            { startId: 1, endId: DATA_AMOUNT },
+        const readRes: Res<UsersRead<T>[]> = await usersService.readUsers(
+            { startId: 1, endId: SPECS_DATA_AMOUNT },
             requirePrivate
         );
-        return readRes.payload.map((user: ReadType<T>, index: number) =>
+        return readRes.payload.map((user: UsersRead<T>, index: number) =>
             requirePrivate
                 ? { ...user, password: createDTOs[index].user.password }
                 : user

@@ -27,6 +27,13 @@ module.exports = {
   },
   settings: {
     "import/resolver": {
+      alias: {
+        map: [
+          ["#", "src/"],
+          ["#shared", "../shared/src/"]
+        ],
+        extensions: [".ts"]
+      },
       typescript: {
         extensions: [".ts", "d.ts", ".tsx"],
         moduleDirectory: [".", "src/", "node_modules/"]

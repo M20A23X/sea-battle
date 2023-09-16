@@ -1,15 +1,15 @@
-import process from 'process';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
-import { JWT_EXPIRE_TIME_S } from 'shared/static/common';
-import { AuthGuard } from 'guards/auth.guard';
-import { DataSourceModule } from 'modules/dataSource.module';
-import { UsersModule } from 'modules/user/users.module';
+import { JWT_EXPIRE_TIME_S } from '#shared/static';
 
-import { RefreshTokenRepository } from 'repositories/refreshToken.repository';
-import { AuthController } from 'controllers/auth.controller';
-import { AuthService } from 'services/auth.service';
+import { AuthGuard } from '#/guards';
+
+import { DataSourceModule, UsersModule } from '#/modules';
+
+import { RefreshTokenRepository } from '#/repositories';
+import { AuthController } from '#/controllers';
+import { AuthService } from '#/services';
 
 @Module({
     imports: [

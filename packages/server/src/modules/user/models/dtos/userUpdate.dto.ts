@@ -7,7 +7,7 @@ import {
     PickType
 } from '@nestjs/swagger';
 
-import { UserUpdateData, UserReqDTO } from 'shared/types/user';
+import { UserUpdateData, UserReqDTO } from '#shared/types';
 
 import { UserDTO } from './user.dto';
 

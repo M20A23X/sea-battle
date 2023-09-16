@@ -1,14 +1,16 @@
-import process from 'process';
 import { Provider } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
-import { EnvError } from 'shared/exceptions/EnvError';
+import { EnvException } from '#shared/exceptions';
 
-import { NODE_ENV_PROD } from 'shared/static/common';
-import { ENTITIES } from 'static/entities';
-import { DATABASE_IP, DATABASE_NAME, DATABASE_PORT } from 'static/common';
+import { NODE_ENV_PROD } from '#shared/static';
+import { DATABASE_IP, DATABASE_NAME, DATABASE_PORT } from '#/static';
 
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { ILoggerService, LoggerService } from '#/services';
+
+import { RefreshToken, User } from '#/modules/entities';
+
+const ENTITIES = [User, RefreshToken];
 
 export const DataSourceProvider: Provider = {
     provide: DataSource,
@@ -29,15 +31,15 @@ export const DataSourceProvider: Provider = {
         });
         loggerService.debug(dataSource.options);
 
+        const databasePasswordSalt: string | undefined =
+            process.env.DATABASE_PASSWORD_SALT;
+        if (!databasePasswordSalt)
+            throw new EnvException('Database password salt is not set!');
+
+        const jwtSecret: string | undefined = process.env.JWT_SECRET;
+        if (!jwtSecret) throw new EnvException('JWT secret is not set!');
+
         try {
-            const databasePasswordSalt: string | undefined =
-                process.env.DATABASE_PASSWORD_SALT;
-            if (!databasePasswordSalt)
-                throw new EnvError('Database password salt is not set!');
-
-            const jwtSecret: string | undefined = process.env.JWT_SECRET;
-            if (!jwtSecret) throw new EnvError('JWT secret is not set!');
-
             await dataSource.initialize();
             if (dataSource.isInitialized)
                 loggerService.log('Successfully initialize datasource');

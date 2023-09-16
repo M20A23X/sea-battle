@@ -6,9 +6,9 @@ import {
     Unique
 } from 'typeorm';
 
-import { IUser } from 'shared/types/user';
+import { IUser } from '#shared/types';
 
-import { USER_ENTITY } from 'static/format';
+import { USER_ENTITY } from '#/static';
 
 const { username, password, imgPath } = USER_ENTITY;
 

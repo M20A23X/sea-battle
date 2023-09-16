@@ -8,9 +8,9 @@ import {
 } from 'typeorm';
 import { IsDate, IsIP } from 'class-validator';
 
-import { IRefreshToken } from 'shared/types/auth';
+import { IRefreshToken } from '#shared/types';
 
-import { User } from 'modules/user/models/entities/user.entity';
+import { User } from '#/modules/user';
 
 @Entity({ name: 'tbl_refresh_tokens' })
 export class RefreshToken implements IRefreshToken {

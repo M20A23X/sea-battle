@@ -16,15 +16,14 @@ import {
     ApiProduces
 } from '@nestjs/swagger';
 
-import type { PromiseRes } from 'shared/types/requestResponse';
-import type { AccessTokenRes, SignInRes } from 'shared/types/auth';
+import { PromiseRes, AccessTokenRes, SignInRes } from '#shared/types';
 
-import { MIME_TYPE } from 'shared/static/web';
+import { MIME_TYPE } from '#shared/static';
 
-import { SignInDTO } from 'modules/auth/models/dtos/signIn.dto';
+import { SignInDTO } from '#/modules/auth';
 
-import { AuthGuard } from 'guards/auth.guard';
-import { AuthService } from 'services/auth.service';
+import { AuthGuard } from '#/guards';
+import { AuthService } from '#/services';
 
 interface IAuthController {
     postSignInUser(

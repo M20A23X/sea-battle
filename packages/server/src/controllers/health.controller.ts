@@ -1,5 +1,4 @@
 import * as path from 'path';
-
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import {
@@ -8,22 +7,22 @@ import {
     HealthCheckResult,
     HealthCheckService,
     HttpHealthIndicator,
-    MemoryHealthIndicator,
-    TypeOrmHealthIndicator
+    TypeOrmHealthIndicator,
+    MemoryHealthIndicator
 } from '@nestjs/terminus';
 
-import { PromiseRes } from 'shared/types/requestResponse';
+import { PromiseRes } from '#shared/types';
 
-import { ServiceException } from 'shared/exceptions/Service.exception';
+import { ServiceException } from '#shared/exceptions';
 
 import {
     DATABASE_HEALTHCHECK_TIMEOUT_MS,
     DISK_THRESHOLD_PERCENT,
     MEM_HEAP_THRESHOLD,
     MEM_RSS_THRESHOLD
-} from 'shared/static/common';
+} from '#shared/static';
 
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { ILoggerService, LoggerService } from '#/services';
 
 export interface IHealthController {
     get(): PromiseRes<string>;

@@ -1,10 +1,9 @@
-import { SignInRes } from 'shared/types/auth';
-import { Res } from 'shared/types/requestResponse';
+import { SignInRes, Res } from '#shared/types';
 
-import { IAuthService } from 'services/auth.service';
+import { IAuthService } from '#/services/auth.service';
 
-import { SignInDTO } from 'modules/auth/models/dtos/signIn.dto';
-import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
+import { SignInDTO } from '#/modules/auth/models/dtos/signIn.dto';
+import { UserCreateDTO } from '#/modules/user/models/dtos/userCreate.dto';
 
 type SignInUsers = (signInDTOS: SignInDTO[]) => Promise<SignInRes[]>;
 

@@ -3,28 +3,54 @@ import {
     ArgumentsHost,
     ConsoleLogger,
     HttpException,
-    HttpStatus,
+    HttpStatus
 } from '@nestjs/common';
 import { HttpArgumentsHost } from '@nestjs/common/interfaces';
 
-import { ServiceException } from 'exceptions/Service.exception';
+import { MessagePayload, Res, ServiceCode } from '#/types';
 
-import { SERVICE_CODE_STATUS_DICT } from 'static/web';
+import { ServiceException } from '#/exceptions';
 
-import { getContextEntity } from './requestResponse.util';
-import { decipherCode } from './decipherError.util';
+import { SERVICE_CODE_STATUS_DICT } from '#/static';
 
-import { Res, MessagePayload, ServiceCode } from 'types/requestResponse';
+import { decipherCode, getContextEntity } from '#/utils';
 
 const UNEXPECTED_ERR_CODES: ServiceCode[] = [
     'UNEXPECTED_ERROR',
-    'UNEXPECTED_DB_ERROR',
+    'UNEXPECTED_DB_ERROR'
 ];
+
+const logException = (
+    loggerService: ConsoleLogger,
+    operation: string,
+    serviceCode: ServiceCode,
+    context: string,
+    entity: string,
+    message: string | undefined,
+    stack: string | undefined,
+    payload: MessagePayload
+): string => {
+    loggerService.setContext(context);
+    const contextEntity: string = (
+        entity || getContextEntity(context)
+    ).toLowerCase();
+    const exceptionMessage: string =
+        message ?? decipherCode(contextEntity, serviceCode, payload);
+    const resMessage = `Error ${operation.toLowerCase()} ${contextEntity}s: ${exceptionMessage}!`;
+
+    loggerService.setContext(context);
+    if (UNEXPECTED_ERR_CODES.includes(serviceCode)) {
+        loggerService.error(resMessage);
+        if (stack) loggerService.error(stack);
+    } else loggerService.warn(resMessage);
+
+    return resMessage;
+};
 
 export const handleException = (
     exception: Error,
     host: ArgumentsHost,
-    loggerService: ConsoleLogger,
+    loggerService: ConsoleLogger
 ): object => {
     const ctx: HttpArgumentsHost = host.switchToHttp();
     const res: Response = ctx.getResponse<Response>();
@@ -64,19 +90,16 @@ export const handleException = (
         if (status === HttpStatus.NOT_FOUND) return res.sendStatus(status);
     }
 
-    const contextEntity: string = (
-        entity || getContextEntity(context)
-    ).toLowerCase();
-    const exceptionMessage: string =
-        message ?? decipherCode(contextEntity, serviceCode, payload);
-
-    const resMessage = `Error ${operation.toLowerCase()} ${contextEntity}s: ${exceptionMessage}!`;
-
-    loggerService.setContext(context);
-    if (UNEXPECTED_ERR_CODES.includes(serviceCode)) {
-        loggerService.error(resMessage);
-        if (exception?.stack) loggerService.error(exception.stack);
-    } else loggerService.warn(resMessage);
+    const resMessage: string = logException(
+        loggerService,
+        operation,
+        serviceCode,
+        context,
+        entity,
+        message,
+        exception.stack,
+        payload
+    );
 
     const json: Res = { message: resMessage };
     return res.status(status).json(json);

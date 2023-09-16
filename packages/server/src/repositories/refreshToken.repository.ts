@@ -10,10 +10,11 @@ import {
     SelectQueryBuilder
 } from 'typeorm';
 
-import { IRefreshToken } from 'shared/types/auth';
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { IRefreshToken } from '#shared/types';
 
-import { RefreshToken } from 'modules/auth/models/entities/refreshToken.entity';
+import { ILoggerService, LoggerService } from '#/services';
+
+import { RefreshToken } from '#/modules/auth';
 
 export interface IRefreshTokenRepository {
     insertToken(token: IRefreshToken): Promise<void>;

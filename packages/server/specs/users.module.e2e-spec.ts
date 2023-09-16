@@ -5,47 +5,52 @@ import { DataSource } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
-import { TestRes } from 'shared/types/specs';
-
-import { getQuery } from 'shared/utils/requestResponse.util';
 import {
-    random,
+    TestRes,
+    IUser,
+    UserPublicData,
+    UserCreateData,
+    UserUpdateData,
+    UserDeleteData,
+    UsersReadData
+} from '#shared/types';
+
+import {
     RandomAction,
+    random,
     randomizeAction,
     randomRange
-} from 'shared/utils/random.util';
-
-import { MIME_TYPE } from 'shared/static/web';
-import { DATA_AMOUNT, HOOK_TIMEOUT } from 'shared/static/specs';
+} from '#shared/utils';
 
 import {
-    UserDeleteData,
-    UserUpdateData,
-    IUser,
-    UserCreateData,
-    UserPublicData,
-    UsersReadData
-} from 'shared/types/user';
+    MIME_TYPE,
+    SPECS_DATA_AMOUNT,
+    SPECS_HOOK_TIMEOUT_MS
+} from '#shared/static';
 
-import { initApp } from './utils/initApp';
-import { initializeDataSource, truncateTable } from './utils/dataSource';
 import {
+    initApp,
+    initializeDataSource,
+    truncateTable,
     createUserCreateDTOs,
     CreateUsers,
     expandRegex,
     requireCreateUsers,
     USER_TEST_DATA
-} from './utils/users';
+} from './utils';
 
-import { IUserService, UserService } from 'services/user.service';
+import { IUserService, UserService } from '#/services';
 
-import { USER_ENTITY, USERS_SCHEMA } from 'static/format';
+import { USER_ENTITY, USERS_SCHEMA } from '#/static';
 
-import { User } from 'modules/user/models/entities/user.entity';
-import { UserDTO } from 'modules/user/models/dtos/user.dto';
-import { UserDeleteDTO } from 'modules/user/models/dtos/userDelete.dto';
-import { UserCreateDTO } from 'modules/user/models/dtos/userCreate.dto';
-import { UserUpdateDTO } from 'modules/user/models/dtos/userUpdate.dto';
+import {
+    User,
+    UserDTO,
+    UserDeleteDTO,
+    UserCreateDTO,
+    UserUpdateDTO,
+    UsersReadDTO
+} from '#/modules/user';
 
 const {
     username: USERNAME,
@@ -74,9 +79,12 @@ describe('Users module tests.', () => {
             moduleRef.get<IUserService>(UserService)
         );
         await initializeDataSource(dataSource);
-    }, HOOK_TIMEOUT);
-    afterEach(async () => await truncateTable(dataSource, User), HOOK_TIMEOUT);
-    afterAll(async () => await dataSource.destroy(), HOOK_TIMEOUT);
+    }, SPECS_HOOK_TIMEOUT_MS);
+    afterEach(
+        async () => await truncateTable(dataSource, User),
+        SPECS_HOOK_TIMEOUT_MS
+    );
+    afterAll(async () => await dataSource.destroy(), SPECS_HOOK_TIMEOUT_MS);
 
     ///--- Cases ---///
 
@@ -84,11 +92,11 @@ describe('Users module tests.', () => {
     it(
         'Should prevent create UserDTOs with incorrect props format',
         async () => {
+            const TESTED_DECORATORS_AMOUNT = 7;
             const [randomValue] = expandRegex(/^(\W){100}$/, 1);
             const createActions: RandomAction<UserDTO, [UserDTO, number]>[] = [
-                (userDTORaw: UserDTO) => {
+                () => {
                     const userDTO: UserDTO = {
-                        ...userDTORaw,
                         userUUID: randomValue,
                         username: randomValue,
                         password: randomValue,
@@ -98,7 +106,7 @@ describe('Users module tests.', () => {
                         startId: -2,
                         endId: -1
                     };
-                    return [userDTO, 7];
+                    return [userDTO, TESTED_DECORATORS_AMOUNT];
                 },
                 (userDTORaw: UserDTO) => {
                     const userDTO: UserDTO = {
@@ -154,7 +162,7 @@ describe('Users module tests.', () => {
                 expect(errors.length).toEqual(exErrorsAmount);
             }
         },
-        HOOK_TIMEOUT
+        SPECS_HOOK_TIMEOUT_MS
     );
 
     ///--- /POST CREATE ---///
@@ -212,7 +220,7 @@ describe('Users module tests.', () => {
                 expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT
+        SPECS_HOOK_TIMEOUT_MS
     );
 
     ///--- /GET READ ---///
@@ -245,8 +253,8 @@ describe('Users module tests.', () => {
                 },
                 () => {
                     const [startId, endId] = randomRange(
-                        2 * DATA_AMOUNT,
-                        DATA_AMOUNT + 1
+                        2 * SPECS_DATA_AMOUNT,
+                        SPECS_DATA_AMOUNT + 1
                     );
                     const readDTO: UsersReadData = { startId, endId };
                     return [readDTO, []];
@@ -290,10 +298,14 @@ describe('Users module tests.', () => {
             );
 
             for (const [index, dto] of readDTOs.entries()) {
+                const dtoEntries: string[][] = Object.entries(dto).map(
+                    ([k, v]) => [k, v.toString()]
+                );
+
                 const exResp: TestRes<UserPublicData | void> = exRes[index];
                 const res: Response = await request(app.getHttpServer())
                     .get('/users/read')
-                    .query(getQuery(dto));
+                    .query(new URLSearchParams(dtoEntries).toString());
 
                 if (res.statusCode !== exResp.status) {
                     console.info(`Read request:`, dto);
@@ -315,7 +327,7 @@ describe('Users module tests.', () => {
                 expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT
+        SPECS_HOOK_TIMEOUT_MS
     );
 
     ///--- /PUT UPDATE ---///
@@ -415,7 +427,7 @@ describe('Users module tests.', () => {
                 expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT
+        SPECS_HOOK_TIMEOUT_MS
     );
 
     ///--- /DELETE ---///
@@ -498,6 +510,6 @@ describe('Users module tests.', () => {
                 expect(res.statusCode).toEqual(exResp.status);
             }
         },
-        HOOK_TIMEOUT
+        SPECS_HOOK_TIMEOUT_MS
     );
 });

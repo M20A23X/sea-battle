@@ -2,7 +2,8 @@ import { ApiProperty, PickType } from '@nestjs/swagger';
 import { IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-import { UserDeleteData, UserReqDTO } from 'shared/types/user';
+import { UserDeleteData, UserReqDTO } from '#shared/types';
+
 import { UserDTO } from './user.dto';
 
 class Data

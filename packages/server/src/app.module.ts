@@ -1,17 +1,15 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
-import { HealthModule } from './health.module';
-import { UsersModule } from './user/users.module';
-import { AuthModule } from './auth/auth.module';
+import { LogHttpRequestMiddleware } from '#/middleware';
 
-import { LogHttpRequestMiddleware } from 'middleware/logHttpRequest.middleware';
+import { AuthModule, HealthModule, UsersModule } from '#/modules';
 
-import { LoggerService } from 'services/logger.service';
+import { LoggerService } from '#/services';
 
 @Module({
     imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
+        ConfigModule.forRoot({ isGlobal: true, envFilePath: '../../.env' }),
         HealthModule,
         UsersModule,
         AuthModule

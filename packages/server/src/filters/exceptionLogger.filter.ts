@@ -1,8 +1,8 @@
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 
-import { handleException } from 'shared/utils/hanldeException.util';
+import { handleException } from '#shared/utils';
 
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { ILoggerService, LoggerService } from '#/services';
 
 @Catch()
 export class ExceptionLoggerFilter implements ExceptionFilter {

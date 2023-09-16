@@ -1,5 +1,5 @@
 import { ValidationPipeOptions } from '@nestjs/common';
-import { NODE_ENV_PROD } from 'shared/static/common';
+import { NODE_ENV_PROD } from '#shared/static';
 
 export const validationConfig: ValidationPipeOptions = {
     transform: true,
