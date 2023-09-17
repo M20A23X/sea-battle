@@ -3,6 +3,7 @@ import {
     Controller,
     Delete,
     Get,
+    Inject,
     Post,
     Put,
     Query
@@ -21,7 +22,7 @@ import { MIME_TYPE } from '#shared/static';
 
 import { TUserReadDbQualifier } from '#/repositories';
 
-import { UserService } from '#/services';
+import { IUserService, UserService } from '#/services';
 
 import {
     UserCreateDTO,
@@ -42,7 +43,10 @@ export interface IUserController {
 
 @Controller('users')
 export class UserController implements IUserController {
-    constructor(private readonly _usersService: UserService) {}
+    constructor(
+        @Inject(UserService)
+        private readonly _usersService: IUserService
+    ) {}
 
     ///--- Public ---///
     @Post('/create')
@@ -81,7 +85,7 @@ export class UserController implements IUserController {
     }
 
     @Delete('/delete')
-    @ApiQuery({ type: [UserDeleteDTO] })
+    @ApiBody({ type: [UserDeleteDTO] })
     @ApiConsumes(MIME_TYPE.applicationJson)
     @ApiProduces(MIME_TYPE.applicationJson)
     @ApiOperation({ summary: 'Delete user' })
