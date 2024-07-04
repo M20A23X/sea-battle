@@ -19,6 +19,7 @@
     "start:dev": "yarn _build:shared && concurrently \"yarn _start:shared\" \"lerna run start:dev --scope",
     "start:prod": "yarn _build:shared && lerna run start:prod --scope",
     "test": "yarn _build:shared && lerna run test --scope",
+    "test:coverage": "yarn _build:shared && lerna run test:coverage --scope",
     "test:quick": "yarn _build:shared && lerna run test:quick --scope",
     "test:watch": "yarn _build:shared && concurrently \"yarn _start:shared\" \"lerna run test:watch --scope"
   },
