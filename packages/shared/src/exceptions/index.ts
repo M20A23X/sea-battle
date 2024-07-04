@@ -1,2 +1,2 @@
 export * from './Env.exception';
-export * from './Service.exception';
+export * from './Exception.exception';

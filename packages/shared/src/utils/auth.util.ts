@@ -3,9 +3,7 @@ import { Algorithm } from 'jsonwebtoken';
 import { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-import { EnvException } from '../exceptions/Env.exception';
-
-import { JWT_ALGORITHM } from '../static';
+import { EnvException } from '#/exceptions/Env.exception';
 
 const extractToken = (request: Request): string | undefined => {
     const [type, token]: string[] =
@@ -14,10 +12,11 @@ const extractToken = (request: Request): string | undefined => {
 };
 
 const checkAccess = async (
+    jwtSecret: string,
     verifyAsyncJwt: JwtService['verifyAsync'],
-    context: ExecutionContext
+    context: ExecutionContext,
+    algorithm: Algorithm
 ): Promise<boolean> => {
-    const jwtSecret: string | undefined = process.env.JWT_SECRET;
     if (!jwtSecret) throw new EnvException('JWT secret is not set!');
 
     const request = context.switchToHttp().getRequest();
@@ -27,9 +26,7 @@ const checkAccess = async (
     try {
         request.user = await Function.prototype.call(verifyAsyncJwt, token, {
             secret: jwtSecret,
-            algorithms: [
-                (process.env.JWT_ALGORITHM as Algorithm) || JWT_ALGORITHM
-            ]
+            algorithms: [algorithm]
         });
     } catch {
         return false;
