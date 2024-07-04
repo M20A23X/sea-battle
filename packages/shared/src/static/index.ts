@@ -1,3 +1,2 @@
-export * from './common';
+export * from './defaults';
 export * from './web';
-export * from './specs';
