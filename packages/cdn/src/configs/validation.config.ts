@@ -1,25 +1,37 @@
-import {
-    HttpStatus,
-    ParseFilePipe,
-    ValidationPipeOptions,
-} from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 
-import { ServiceException } from 'shared/exceptions/Service.exception';
+import { IValidationConfig, NodeEnv } from '#shared/types';
+import { Exception } from '#shared/exceptions';
+import { Default as DefaultShared } from '#shared/static';
 
-import { NODE_ENV_PROD } from 'shared/static/common';
+import envConfig from '#/configs/env.config';
 
-const validationConfig: ValidationPipeOptions = {
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    disableErrorMessages: process.env.NODE_ENV === NODE_ENV_PROD,
-};
-
-const parseFilePipe = new ParseFilePipe({
-    fileIsRequired: true,
-    errorHttpStatusCode: HttpStatus.BAD_REQUEST,
-    exceptionFactory: () =>
-        new ServiceException('UPLOAD', 'file', "file isn't provided"),
+export default (): IValidationConfig => ({
+    validation: {
+        config: {
+            transform: Boolean(
+                process.env.VALIDATION_TRANSFORM ||
+                    DefaultShared.validation.config.transform
+            ),
+            whitelist: Boolean(
+                process.env.VALIDATION_WHITELIST ||
+                    DefaultShared.validation.config.whitelist
+            ),
+            forbidNonWhitelisted: Boolean(
+                process.env.VALIDATION_FORBID_NON_WHITELISTED ||
+                    DefaultShared.validation.config.forbidNonWhitelisted
+            ),
+            disableErrorMessages:
+                envConfig().env.state === NodeEnv.Production ??
+                DefaultShared.validation.config.disableErrorMessages
+        },
+        parseFilePipe: {
+            fileIsRequired: Boolean(
+                process.env.VALIDATION_FILE_IS_REQUIRED ||
+                    DefaultShared.validation.parseFilePipe.fileIsRequired
+            ),
+            errorHttpStatusCode: HttpStatus.BAD_REQUEST,
+            exceptionFactory: () => new Exception('NOT_PROVIDED')
+        }
+    }
 });
-
-export { validationConfig, parseFilePipe };
