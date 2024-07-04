@@ -23,6 +23,23 @@ services:
       - backend
       - database
 
+  cdn:
+    build:
+      context: ../
+      args:
+        CDN_PORT: ${CDN_PORT}
+    restart: always
+    environment:
+      CDN_HOST_HTTP: ${CDN_HOST_HTTP}
+    ports:
+      - ${CDN_PORT}:${CDN_PORT}
+    networks:
+      games-network:
+        ipv4_address: ${CDN_IP}
+    profiles:
+      - full
+      - cdn
+
   server:
     build:
       context: ../

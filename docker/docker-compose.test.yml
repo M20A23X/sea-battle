@@ -11,6 +11,21 @@ services:
     image: m20a20x/games:database
     container_name: database-test
 
+  cdn:
+    extends:
+      file: docker-compose.base.yml
+      service: cdn
+    build:
+      dockerfile: docker/configs/cdn/Dockerfile.test
+    environment:
+      NODE_ENV: test
+      JWT_SECRET: ${JWT_SECRET}
+      SPECS_DATA_AMOUNT: ${SPECS_DATA_AMOUNT}
+      SPECS_HOOK_TIMEOUT_MS: ${SPECS_HOOK_TIMEOUT_MS}
+    image: m20a20x/games:cdn
+    container_name: cdn-test
+    command: yarn test:quick cdn
+
   server:
     extends:
       file: docker-compose.base.yml
@@ -31,6 +46,8 @@ services:
       dockerfile: docker/configs/client/Dockerfile.test
     environment:
       NODE_ENV: test
+      SPECS_DATA_AMOUNT: ${SPECS_DATA_AMOUNT}
+      SPECS_HOOK_TIMEOUT_MS: ${SPECS_HOOK_TIMEOUT_MS}
     image: m20a20x/games:client
     container_name: client-test
     command: yarn test:quick client

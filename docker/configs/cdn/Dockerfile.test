@@ -1,0 +1,30 @@
+FROM node:18 as base
+WORKDIR /usr/src/app/
+
+RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
+    --mount=type=bind,source=lerna.json,target=lerna.json \
+    --mount=type=bind,source=.yarnrc,target=.yarnrc \
+    --mount=type=bind,source=.yarn,target=.yarn \
+    --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=packages/shared/package.json,target=packages/shared/package.json \
+    --mount=type=bind,source=packages/cdn/package.json,target=packages/cdn/package.json \
+    --mount=type=bind,source=yarn.lock,target=yarn.lock \
+    yarn install --frozen-lockfile --non-interactive --ignore-scripts
+
+RUN ls node_modules
+COPY --chown=app:app ./package.json ./lerna.json ./jest.config.json ./
+
+WORKDIR /usr/src/app/packages/shared/
+COPY --chown=app:app ./packages/shared/package.json ./packages/shared/tsconfig.json ./
+COPY --chown=app:app ./packages/shared/src*/ ./src/
+
+WORKDIR /usr/src/app/packages/cdn/
+COPY --chown=app:app ./packages/cdn/package.json ./packages/cdn/jest.config.js ./packages/cdn/tsconfig.json ./
+COPY --chown=app:app ./packages/cdn/src/ ./src/
+COPY --chown=app:app ./packages/cdn/specs*/ ./specs/
+
+FROM node:18
+WORKDIR /usr/src/app/
+
+COPY --from=base /usr/src/app/ .
+CMD ["yarn", "test:quick", "--scope cdn"]

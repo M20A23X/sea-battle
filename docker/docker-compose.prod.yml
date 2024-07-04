@@ -11,6 +11,18 @@ services:
     image: m20a20x/games:database
     container_name: database
 
+  cdn:
+    extends:
+      file: docker-compose.base.yml
+      service: cdn
+    build:
+      dockerfile: docker/configs/cdn/Dockerfile.prod
+    environment:
+      NODE_ENV: prod
+    image: m20a20x/games:cdn
+    container_name: cdn
+    command: node packages/cdn/dist/index.js
+
   server:
     extends:
       file: docker-compose.base.yml
@@ -21,7 +33,7 @@ services:
       NODE_ENV: prod
     image: m20a20x/games:server
     container_name: server
-    command: node dist/index.js
+    command: node packages/server/dist/index.js
 
   client:
     extends:
