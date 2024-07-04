@@ -16,6 +16,7 @@ type DefaultConfig = IAuthConfig &
     IValidationConfig;
 
 const AllowedChars = 'a-zA-Z_0-9.';
+const AllowedPathChars = `:\\/\\\\\\-${AllowedChars}`;
 
 const Default: DefaultConfig = {
     auth: {
@@ -35,8 +36,8 @@ const Default: DefaultConfig = {
             maxlength: 400
         },
         path: {
-            allowedChars: `:\\/\\\\-${AllowedChars}`,
-            regex: new RegExp(`^[${AllowedChars}]+$`)
+            allowedChars: AllowedPathChars,
+            regex: new RegExp(`^[${AllowedPathChars}]+$`)
         }
     },
     health: {

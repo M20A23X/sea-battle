@@ -9,7 +9,6 @@ import {
     ValidationError,
     ValidationPipe
 } from '@nestjs/common';
-import { expandN } from 'regex-to-strings';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -368,12 +367,13 @@ describe('Resource module tests.', () => {
     });
 
     describe('DTO', function () {
-        const samplePath: string = expandN(Format.path.format, 1)[0];
+        const getSamplePath = (): string =>
+            path.join(assets.root, specs.imagesDir);
 
         it(
             'Should create DTO',
             async () => {
-                const dtoPlain: ResourceData = { path: samplePath };
+                const dtoPlain: ResourceData = { path: getSamplePath() };
                 const dto: ResourceData = plainToInstance(
                     ResourceData,
                     dtoPlain
@@ -387,7 +387,7 @@ describe('Resource module tests.', () => {
         it(
             'Should prevent create DTO with incorrect path format',
             async () => {
-                const dtoPlain: ResourceData = { path: samplePath + '@' };
+                const dtoPlain: ResourceData = { path: getSamplePath() + '@' };
                 const dto: ResourceData = plainToInstance(
                     ResourceData,
                     dtoPlain
