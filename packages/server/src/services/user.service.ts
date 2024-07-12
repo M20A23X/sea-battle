@@ -1,180 +1,253 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+    BadRequestException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    NotFoundException,
+    UnauthorizedException
+} from '@nestjs/common';
+import {
+    Between,
+    DeleteResult,
+    InsertResult,
+    Like,
+    UpdateResult
+} from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { compareSync, hashSync } from 'bcryptjs';
 
 import {
+    IEmail,
+    IRange,
     IUser,
-    PromiseRes,
-    Res,
-    ServiceCode,
-    MessagePayload,
-    UserCreateData,
-    UserPublicData,
-    UserUpdateData
-} from '#shared/types';
+    IUserCreate,
+    IUserId,
+    IUsername,
+    IUserPublic,
+    IUserUpdate,
+    IUuid,
+    UserType
+} from '#shared/types/interfaces';
+import { IConfig } from '#/types';
+import { IDatabaseConfig } from '#/types/interfaces';
+import { ILoggerService, LoggerService } from '#/services/logger.service';
+import { UserRepository } from '#/repositories';
 
-import { getServiceCode, requireGetRes } from '#shared/utils';
+interface ReadQualifier {
+    userId: IUserId;
+    uuid: IUuid;
+    email: IEmail;
+    likeUsername: IUsername;
+    username: IUsername;
+    range: IRange;
+}
 
-import { UsersRead } from '#/types';
-
-import { hashPassword } from '#/utils';
-
-import {
-    IUserRepository,
-    TUserReadDbQualifier,
-    UserRepository
-} from '#/repositories';
-
-export interface IUserService {
-    createUser(data: UserCreateData): PromiseRes;
-
-    readUsers<T extends boolean>(
-        qualifier: TUserReadDbQualifier,
-        requirePrivate: T,
-        precise?: boolean
-    ): PromiseRes<UsersRead<T>[]>;
-
-    updateUser(data: UserUpdateData): PromiseRes<UserPublicData>;
-
-    deleteUser(uuid: string, currentPassword: string): PromiseRes;
-
-    checkPassword(
-        user: string | IUser,
-        currentPassword: string
-    ): Promise<boolean>;
+interface IUserService {
+    create(data: IUserCreate): Promise<number>;
+    read<T extends keyof ReadQualifier, R extends boolean>(
+        qualifierType: T,
+        qualifier: ReadQualifier[T],
+        requirePrivate: R
+    ): Promise<UserType<R>[]>;
+    update(data: IUserUpdate): Promise<IUserPublic>;
+    delete(uuid: string, currentPassword: string): Promise<void>;
 }
 
 @Injectable()
-export class UserService implements IUserService {
+class UserService implements IUserService {
+    // --- Configs -------------------------------------------------------------
+    private readonly _database: IDatabaseConfig;
+
+    // --- Logger -------------------------------------------------------------
+    private readonly _logger: ILoggerService = new LoggerService(
+        UserService.name
+    );
+
+    // --- Constructor -------------------------------------------------------------
     constructor(
+        private readonly _configService: ConfigService<IConfig>,
         @Inject(UserRepository)
-        private readonly _userRepository: IUserRepository
-    ) {}
-
-    ///--- Private ---///
-    private readonly _requireGetRes = requireGetRes(UserService.name);
-
-    ///--- Public ---///
-    public async checkPassword(
-        user: string | IUser,
-        currentPassword: string
-    ): Promise<boolean> {
-        let checkUser: IUser;
-
-        if (typeof user === 'string') {
-            const readRes: Res<IUser[]> = await this.readUsers(user, true);
-            const [readUser]: IUser[] = readRes.payload || [];
-            checkUser = readUser;
-        } else checkUser = user;
-
-        return checkUser.password === hashPassword(currentPassword);
+        private readonly _repository: UserRepository
+    ) {
+        this._logger.log('Initializing a User service...');
+        this._database = this._configService.getOrThrow('database');
     }
 
-    public async createUser(data: UserCreateData): PromiseRes {
-        const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('CREATE');
-        const { passwordConfirm: _, password, ...publicData } = data;
-        const { username } = data;
+    // --- Public -------------------------------------------------------------
 
-        const insertData: Omit<UserCreateData, 'passwordConfirm'> = {
-            ...publicData,
-            password: hashPassword(password)
-        };
-        try {
-            await this._userRepository.insertUser(insertData);
-        } catch (error: unknown) {
-            const serviceCode: ServiceCode | undefined = getServiceCode(error);
-            if (!serviceCode) throw error;
-            throw getUnSuccessRes(serviceCode, { username });
-        }
+    // --- Static --------------------
+    public static async checkPassword(
+        user: IUser,
+        password: string,
+        logger: ILoggerService
+    ): Promise<void> {
+        const { lastPassword, passwordUpdatedAt } = user.credentials;
 
-        return getSuccessRes({ username });
-    }
+        logger.log('Checking the last password...');
+        logger.debug({ user, lastPassword, passwordUpdatedAt });
 
-    public async readUsers<T extends boolean>(
-        qualifier: TUserReadDbQualifier,
-        requirePrivate: T,
-        precise = false
-    ): PromiseRes<UsersRead<T>[]> {
-        const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('READ');
+        if (!compareSync(password, lastPassword))
+            throw new UnauthorizedException('Invalid credentials');
 
-        let readResRaw: any;
-        try {
-            readResRaw = await this._userRepository.readUsers(
-                qualifier,
-                requirePrivate,
-                precise
+        const now: number = Date.now();
+        const time: number = now - passwordUpdatedAt;
+        const hours: number = time / 3_600_000;
+        const days: number = hours / 24;
+        const months: number = days / 30;
+
+        const message = "Passwords don't match - you changed your password ";
+        if (months > 0) {
+            throw new UnauthorizedException(
+                message + months + (months > 1 ? 'months ago' : 'month ago')
             );
-        } catch (error: unknown) {
-            const serviceCode: ServiceCode | undefined = getServiceCode(error);
-            if (!serviceCode) throw error;
-            throw getUnSuccessRes(serviceCode);
+        }
+        if (days > 0) {
+            throw new UnauthorizedException(
+                message + days + (days > 1 ? 'days ago' : 'day ago')
+            );
+        }
+        if (hours > 0) {
+            throw new UnauthorizedException(
+                message + hours + (hours > 1 ? 'hours ago' : 'hour ago')
+            );
         }
 
-        const isArray: boolean = readResRaw instanceof Array;
-        if (!isArray) throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
-        let readRes = readResRaw as any[];
-        if (!readRes.length) {
-            const resPayload: MessagePayload =
-                typeof qualifier === 'string' ? { qualifier } : undefined;
-            throw getUnSuccessRes('NOT_FOUND', resPayload);
-        }
-
-        const isCorrect: boolean =
-            typeof readResRaw?.[0]?.userUUID === 'string';
-        if (!isCorrect) throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
-        readRes = readResRaw as UsersRead<T>[];
-
-        return getSuccessRes({ amount: readRes.length }, readRes);
+        throw new UnauthorizedException(message + 'recently');
     }
 
-    public async updateUser(data: UserUpdateData): PromiseRes<UserPublicData> {
-        const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('UPDATE');
-        const {
-            currentPassword,
-            passwordConfirm: _,
-            ...userUpdateDbData
-        } = data;
+    // --- Instance --------------------
 
-        const { userUUID: uuid } = data;
-        const checkPasswordRes: boolean = await this.checkPassword(
-            uuid,
-            currentPassword
-        );
-        if (!checkPasswordRes)
-            throw getUnSuccessRes('PASSWORDS_DONT_MATCH', { uuid });
+    // --- CRUD --------------------
+
+    //--- Create -----------
+    public async create(data: IUserCreate): Promise<number> {
+        const { password, passwordConfirm } = data;
+
+        this._logger.log('Creating a new user...');
+        this._logger.debug({ data });
+
+        if (password !== passwordConfirm)
+            throw new BadRequestException("passwords don't match");
 
         try {
-            await this._userRepository.updateUser(userUpdateDbData);
+            const result: InsertResult = await this._repository.insert({
+                ...data,
+                password: hashSync(password, this._database.passwordSalt)
+            });
+
+            this._logger.debug({ result });
+
+            return result.identifiers[0].userId;
         } catch (error: unknown) {
-            const serviceCode: ServiceCode | undefined = getServiceCode(error);
-            if (!serviceCode) throw error;
-            throw getUnSuccessRes(serviceCode);
+            this._logger.debug(error);
+            throw new InternalServerErrorException();
+        }
+    }
+
+    //--- Read -----------
+    public async read<T extends keyof ReadQualifier, R extends boolean>(
+        qualifierType: T,
+        qualifier: ReadQualifier[T],
+        requirePrivate: R
+    ): Promise<UserType<R>[]> {
+        this._logger.log('Reading the users...');
+        this._logger.debug({ qualifierType, qualifier, requirePrivate });
+
+        let repoRes: IUser[];
+        switch (qualifierType) {
+            case 'userId':
+                const { userId } = qualifier as IUserId;
+                repoRes = await this._repository.findBy({ userId });
+                break;
+            case 'uuid':
+                const { uuid } = qualifier as IUuid;
+                repoRes = await this._repository.findBy({ uuid });
+                break;
+            case 'email':
+                const { email } = qualifier as IEmail;
+                repoRes = await this._repository.findBy({ email });
+                break;
+            case 'username':
+                const { username } = qualifier as IUsername;
+                repoRes = await this._repository.findBy({ username });
+                break;
+            case 'likeUsername':
+                const { username: template } = qualifier as IUsername;
+                repoRes = await this._repository.findBy({
+                    username: Like(`%${template}%`)
+                });
+                break;
+            case 'range':
+                const { start, end } = qualifier as IRange;
+                repoRes = await this._repository.findBy({
+                    userId: Between(start, end)
+                });
+                break;
+            default:
+                repoRes = await this._repository.find({
+                    take: this._database.limitFallback
+                });
+                break;
         }
 
-        const readRes: Res<UserPublicData[]> = await this.readUsers(
-            uuid,
+        if (!repoRes.length) throw new NotFoundException();
+
+        let result: IUser[] | IUserPublic[] = repoRes;
+        if (!requirePrivate) {
+            result = repoRes.map(
+                ({
+                    userId: _,
+                    password: __,
+                    ...userPublic
+                }: IUser): IUserPublic => userPublic
+            );
+        }
+
+        this._logger.debug({ result });
+
+        return result as UserType<R>[];
+    }
+
+    //--- Update -----------
+    public async update(data: IUserUpdate): Promise<IUserPublic> {
+        const { uuid, currentPassword, passwordConfirm: _, ...dbData } = data;
+        const [user]: IUser[] = await this.read('uuid', { uuid }, true);
+
+        this._logger.log('Updating the user...');
+        this._logger.debug({ data, user });
+
+        await UserService.checkPassword(user, currentPassword, this._logger);
+        const result: UpdateResult = await this._repository.update(
+            { uuid },
+            dbData
+        );
+
+        if (data.password) user.credentials.updatePassword(data.password);
+        if (data.email) user.credentials.updateVersion();
+
+        const [updatedUser]: IUserPublic[] = await this.read(
+            'uuid',
+            { uuid },
             false
         );
-        const [updatedUser]: UserPublicData[] = readRes.payload || [];
-        return getSuccessRes({ uuid }, updatedUser);
+
+        this._logger.debug({ result, updatedUser });
+
+        return updatedUser;
     }
 
-    public async deleteUser(uuid: string, currentPassword: string): PromiseRes {
-        const [getSuccessRes, getUnSuccessRes] = this._requireGetRes('DELETE');
+    //--- Delete -----------
+    public async delete(uuid: string, currentPassword: string): Promise<void> {
+        const [user]: IUser[] = await this.read('uuid', { uuid }, true);
 
-        const checkPasswordRes: boolean = await this.checkPassword(
-            uuid,
-            currentPassword
-        );
-        if (!checkPasswordRes)
-            throw getUnSuccessRes('PASSWORDS_DONT_MATCH', { uuid });
+        this._logger.log('Deleting the user...');
+        this._logger.debug({ uuid, user });
 
-        try {
-            await this._userRepository.deleteUser(uuid);
-        } catch (error: unknown) {
-            const serviceCode: ServiceCode | undefined = getServiceCode(error);
-            if (!serviceCode) throw error;
-            throw getUnSuccessRes(serviceCode);
-        }
+        await UserService.checkPassword(user, currentPassword, this._logger);
+        const result: DeleteResult = await this._repository.delete(uuid);
 
-        return getSuccessRes({ uuid });
+        this._logger.debug({ result });
     }
 }
+
+export { ReadQualifier, IUserService, UserService };

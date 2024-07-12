@@ -5,29 +5,33 @@ import {
     PrimaryGeneratedColumn,
     Unique
 } from 'typeorm';
+import { IUserCredentialsEmbeddable, IUser } from '#shared/types/interfaces';
+import { Format } from '#shared/static/format';
+import { UserCredentialsEmbeddable } from '#/modules/user/models/entities/embeddables/UserCredentials.embeddable';
 
-import { IUser } from '#shared/types';
-
-import { USER_ENTITY } from '#/static';
-
-const { username, password, imgPath } = USER_ENTITY;
-
+//--- UserEntity -----------
 @Entity({ name: 'tbl_users' })
-export class User implements IUser {
+class UserEntity implements IUser {
     @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'users_PK_userId' })
     public userId: number;
-
     @Column({ type: 'uuid' })
     @Generated('uuid')
-    public userUUID: string;
+    public uuid: string;
 
-    @Column({ type: 'varchar', length: username.maxLength })
+    @Column({ type: 'varchar' })
+    @Unique('users_UQ_email', ['email'])
+    public email: string;
+    @Column({ type: 'varchar', length: Format.username.maxLength })
     @Unique('users_UQ_username', ['username'])
     public username: string;
 
-    @Column({ type: 'varchar', length: password.maxLength })
+    @Column({ type: 'varchar', length: Format.password.maxLength })
     public password: string;
+    @Column(() => UserCredentialsEmbeddable)
+    public credentials: IUserCredentialsEmbeddable;
 
-    @Column({ type: 'varchar', length: imgPath.maxLength })
-    public imgPath: string;
+    @Column({ type: 'varchar', nullable: true, length: Format.path.maxLength })
+    public imgPath: string | null;
 }
+
+export { UserEntity };

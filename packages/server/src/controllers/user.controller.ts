@@ -1,96 +1,129 @@
 import {
+    BadRequestException,
     Body,
     Controller,
     Delete,
     Get,
     Inject,
-    Post,
-    Put,
-    Query
+    Put
 } from '@nestjs/common';
 import {
     ApiBody,
     ApiConsumes,
     ApiOperation,
     ApiProduces,
-    ApiQuery
+    getSchemaPath
 } from '@nestjs/swagger';
 
-import { PromiseRes, UserPublicData } from '#shared/types';
-
-import { MIME_TYPE } from '#shared/static';
-
-import { TUserReadDbQualifier } from '#/repositories';
-
-import { IUserService, UserService } from '#/services';
-
 import {
-    UserCreateDTO,
-    UsersReadDTO,
-    UserUpdateDTO,
-    UserDeleteDTO
-} from '#/modules/user';
+    IEmail,
+    IRange,
+    IUsername,
+    IUserPublic,
+    IUuid,
+    MimeType,
+    Res
+} from '#shared/types/interfaces';
+import { UserDeleteDTO, UserUpdateDTO } from '#/modules/user';
+import { IUserService, UserService } from '#/services';
+import { EmailDTO, RangeDTO, UsernameDTO, UuidDTO } from '#/modules/base';
 
-export interface IUserController {
-    postCreateUser(body: UserCreateDTO): PromiseRes;
+interface IUserController {
+    getRead(
+        query: UsernameDTO | UuidDTO | EmailDTO | RangeDTO
+    ): Res<IUserPublic[]>;
 
-    getReadUsers(query: UsersReadDTO): PromiseRes<UserPublicData[]>;
+    putUpdate(body: UserUpdateDTO): Res<IUserPublic>;
 
-    putUpdateUser(body: UserUpdateDTO): PromiseRes<UserPublicData>;
-
-    deleteUser(body: UserDeleteDTO): PromiseRes;
+    delete(body: UserDeleteDTO): Res;
 }
 
-@Controller('users')
-export class UserController implements IUserController {
+@Controller('/users')
+class UserController implements IUserController {
+    // --- Constructor -------------------------------------------------------------
     constructor(
         @Inject(UserService)
         private readonly _usersService: IUserService
     ) {}
 
-    ///--- Public ---///
-    @Post('/create')
-    @ApiBody({ type: [UserCreateDTO] })
-    @ApiConsumes(MIME_TYPE.applicationJson)
-    @ApiProduces(MIME_TYPE.applicationJson)
-    @ApiOperation({ summary: 'Create new user' })
-    async postCreateUser(@Body() body: UserCreateDTO): PromiseRes {
-        return await this._usersService.createUser(body.user);
-    }
+    // --- Public -------------------------------------------------------------
+    // --- Instance --------------------
 
+    //--- GET /read -----------
     @Get('/read')
-    @ApiQuery({ type: [UsersReadDTO] })
-    @ApiProduces(MIME_TYPE.applicationJson)
-    @ApiOperation({ summary: 'Read users' })
-    async getReadUsers(
-        @Query() query: UsersReadDTO
-    ): PromiseRes<UserPublicData[]> {
-        const readQualifier: TUserReadDbQualifier = query?.username
-            ? query.username
-            : query?.userUUID
-            ? query.userUUID
-            : { startId: query?.startId, endId: query?.endId };
-        return await this._usersService.readUsers(readQualifier, false);
+    @ApiBody({
+        schema: {
+            oneOf: [
+                { $ref: getSchemaPath(UuidDTO) },
+                { $ref: getSchemaPath(UsernameDTO) },
+                { $ref: getSchemaPath(EmailDTO) },
+                { $ref: getSchemaPath(RangeDTO) }
+            ]
+        }
+    })
+    @ApiProduces(MimeType.ApplicationJson)
+    @ApiOperation({ summary: 'Read user(s) by username, uuid or email' })
+    async getRead(
+        @Body()
+        body: UsernameDTO | UuidDTO | EmailDTO | RangeDTO
+    ): Res<IUserPublic[]> {
+        let payload: IUserPublic[];
+        switch (body.constructor) {
+            case UsernameDTO:
+                payload = await this._usersService.read(
+                    'username',
+                    body as IUsername,
+                    false
+                );
+                break;
+            case UuidDTO:
+                payload = await this._usersService.read(
+                    'uuid',
+                    body as IUuid,
+                    false
+                );
+                break;
+            case EmailDTO:
+                payload = await this._usersService.read(
+                    'email',
+                    body as IEmail,
+                    false
+                );
+                break;
+            case RangeDTO:
+                payload = await this._usersService.read(
+                    'range',
+                    body as IRange,
+                    false
+                );
+                break;
+            default:
+                throw new BadRequestException('incorrect request');
+        }
+        return { message: 'Successfully read the users', payload };
     }
 
+    //--- PUT /update -----------
     @Put('/update')
     @ApiBody({ type: [UserUpdateDTO] })
-    @ApiConsumes(MIME_TYPE.applicationJson)
-    @ApiProduces(MIME_TYPE.applicationJson)
-    @ApiOperation({ summary: 'Update user' })
-    async putUpdateUser(
-        @Body() body: UserUpdateDTO
-    ): PromiseRes<UserPublicData> {
-        return await this._usersService.updateUser(body.user);
+    @ApiConsumes(MimeType.ApplicationJson)
+    @ApiProduces(MimeType.ApplicationJson)
+    @ApiOperation({ summary: 'Update the user' })
+    async putUpdate(@Body() body: UserUpdateDTO): Res<IUserPublic> {
+        const payload: IUserPublic = await this._usersService.update(body.user);
+        return { message: 'Successfully updated the user', payload };
     }
 
+    //--- DELETE /delete -----------
     @Delete('/delete')
     @ApiBody({ type: [UserDeleteDTO] })
-    @ApiConsumes(MIME_TYPE.applicationJson)
-    @ApiProduces(MIME_TYPE.applicationJson)
-    @ApiOperation({ summary: 'Delete user' })
-    async deleteUser(@Body() body: UserDeleteDTO): PromiseRes {
-        const { userUUID, currentPassword } = body.user;
-        return await this._usersService.deleteUser(userUUID, currentPassword);
+    @ApiConsumes(MimeType.ApplicationJson)
+    @ApiProduces(MimeType.ApplicationJson)
+    @ApiOperation({ summary: 'Delete the user' })
+    async delete(@Body() { user }: UserDeleteDTO): Res {
+        await this._usersService.delete(user.uuid, user.currentPassword);
+        return { message: 'Successfully deleted the user' };
     }
 }
+
+export { UserController };

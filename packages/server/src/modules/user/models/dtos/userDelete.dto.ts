@@ -1,21 +1,20 @@
-import { ApiProperty, PickType } from '@nestjs/swagger';
+import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 import { IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-import { UserDeleteData, UserReqDTO } from '#shared/types';
-
-import { UserDTO } from './user.dto';
+import { IUserDelete, IUserDTO } from '#shared/types/interfaces';
+import { CurrentPasswordDTO, UuidDTO } from '#/modules/base';
 
 class Data
-    extends PickType(UserDTO, ['userUUID', 'currentPassword'])
-    implements UserDeleteData {}
+    extends IntersectionType(UuidDTO, CurrentPasswordDTO)
+    implements IUserDelete {}
 
-class UserDeleteDTO implements UserReqDTO<UserDeleteData> {
+class UserDeleteDTO implements IUserDTO<IUserDelete> {
     @ApiProperty({ type: () => Data })
     @IsObject()
     @ValidateNested()
     @Type(() => Data)
-    public user: UserDeleteData;
+    public user: IUserDelete;
 }
 
 export { UserDeleteDTO };
