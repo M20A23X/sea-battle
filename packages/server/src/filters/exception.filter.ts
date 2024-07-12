@@ -1,0 +1,20 @@
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+
+import { handleException } from '#shared/utils';
+
+import { ILoggerService, LoggerService } from 'services/logger.service';
+
+@Catch()
+class ExceptionLoggerFilter implements ExceptionFilter {
+    // --- Logger -------------------------------------------------------------
+    private readonly _loggerService: ILoggerService = new LoggerService();
+
+    // --- Public -------------------------------------------------------------
+    // --- Instance --------------------
+    //--- catch -----------
+    public catch(exception: Error, host: ArgumentsHost): object {
+        return handleException(exception, host, this._loggerService);
+    }
+}
+
+export { ExceptionFilter };
