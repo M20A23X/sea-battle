@@ -1,9 +1,14 @@
-type ISpecsConfig = {
-    specs: {
-        dataAmount: number;
-        hookTimeoutMs: number;
-        connectionCheckIntervalMs: number;
-    };
-};
+interface ISpecsConfig {
+    getHookTimeoutMs: () => number;
+    connectionCheckIntervalMs: number;
+}
 
-export type { ISpecsConfig };
+type ISpecsDefault = Required<ISpecsConfig>;
+
+interface IConfigSpecs {
+    specs: ISpecsConfig;
+}
+
+type IConfigSpecsDefault = IConfigSpecs;
+
+export { ISpecsConfig, ISpecsDefault, IConfigSpecs, IConfigSpecsDefault };
