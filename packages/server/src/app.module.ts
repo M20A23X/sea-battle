@@ -1,23 +1,56 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { APP_FILTER } from '@nestjs/core';
+import { CacheModule } from '@nestjs/cache-manager';
 
-import { LogHttpRequestMiddleware } from '#/middleware';
+import {
+    AuthConfig,
+    EnvConfig,
+    HealthConfig,
+    ValidationConfig,
+    DatabaseConfig,
+    EmailConfig,
+    AssetsConfig
+} from '#/configs';
+import { AuthGuard } from '#/guards';
+import { ExceptionLoggerFilter } from '#/filters';
+import { LogRequestMiddleware } from '#/middleware';
 
-import { AuthModule, HealthModule, UsersModule } from '#/modules';
-
+import { AuthModule, HealthModule, UserModule, MailerModule } from '#/modules';
 import { LoggerService } from '#/services';
 
 @Module({
     imports: [
-        ConfigModule.forRoot({ isGlobal: true, envFilePath: '../../.env' }),
+        CacheModule.register({ isGlobal: true }),
+        ConfigModule.forRoot({
+            isGlobal: true,
+            load: [
+                AuthConfig,
+                DatabaseConfig,
+                EmailConfig,
+                EnvConfig,
+                HealthConfig,
+                AssetsConfig,
+                ValidationConfig
+            ]
+        }),
+        JwtModule.register({ global: true }),
         HealthModule,
-        UsersModule,
+        MailerModule,
+        UserModule,
         AuthModule
     ],
-    providers: [LoggerService]
+    providers: [
+        AuthGuard,
+        LoggerService,
+        { provide: APP_FILTER, useClass: ExceptionLoggerFilter }
+    ]
 })
-export class AppModule implements NestModule {
+class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer.apply(LogHttpRequestMiddleware).forRoutes('*');
+        consumer.apply(LogRequestMiddleware).forRoutes('*');
     }
 }
+
+export { AppModule };

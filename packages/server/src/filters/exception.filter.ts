@@ -17,4 +17,4 @@ class ExceptionLoggerFilter implements ExceptionFilter {
     }
 }
 
-export { ExceptionFilter };
+export { ExceptionLoggerFilter };

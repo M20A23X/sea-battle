@@ -1,6 +1,6 @@
 export * from './Health.module';
-export * from './dataSource.module';
+export * from './DataSource.module';
 export * from './Mailer.module';
 
 export * from './user/User.module';
-export * from './auth/auth.module';
+export * from './auth/Auth.module';

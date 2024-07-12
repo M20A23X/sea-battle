@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { DataSourceProvider } from '#/configs';
+import { DataSourceProvider } from '#/providers';
 
 @Module({
     providers: [DataSourceProvider],

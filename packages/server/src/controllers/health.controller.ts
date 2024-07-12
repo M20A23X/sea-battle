@@ -1,103 +1,89 @@
-import * as path from 'path';
-import { Controller, Get } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, InternalServerErrorException } from '@nestjs/common';
+import { ApiOperation, ApiProduces } from '@nestjs/swagger';
 import {
     DiskHealthIndicator,
     HealthCheck,
     HealthCheckResult,
     HealthCheckService,
     HttpHealthIndicator,
-    TypeOrmHealthIndicator,
     MemoryHealthIndicator
 } from '@nestjs/terminus';
+import { ConfigService } from '@nestjs/config';
 
-import { PromiseRes } from '#shared/types';
-
-import { ServiceException } from '#shared/exceptions';
-
+import { IHealthController } from '#shared/types';
 import {
-    DATABASE_HEALTHCHECK_TIMEOUT_MS,
-    DISK_THRESHOLD_PERCENT,
-    MEM_HEAP_THRESHOLD,
-    MEM_RSS_THRESHOLD
-} from '#shared/static';
+    IEnvConfig,
+    IHealthConfig,
+    MimeType,
+    Res
+} from '#shared/types/interfaces';
+import { IConfigBase } from '#shared/types/config';
+import { checkHealth } from '#shared/utils';
 
-import { ILoggerService, LoggerService } from '#/services';
+@Controller('/health')
+class HealthController implements IHealthController {
+    // --- Configs -------------------------------------------------------------
+    private readonly _health: IHealthConfig;
+    private readonly _env: IEnvConfig;
+    private readonly _services: {
+        healthCheck: HealthCheckService;
+        httpIndicator: HttpHealthIndicator;
+        diskIndicator: DiskHealthIndicator;
+        memoryIndicator: MemoryHealthIndicator;
+    };
 
-export interface IHealthController {
-    get(): PromiseRes<string>;
-    getCheckHealth(): PromiseRes<HealthCheckResult | unknown>;
-}
-
-@Controller('/')
-export class HealthController implements IHealthController {
+    // --- Constructor -------------------------------------------------------------
     constructor(
-        private _healthServices: HealthCheckService,
-        private _httpIndicator: HttpHealthIndicator,
-        private _diskIndicator: DiskHealthIndicator,
-        private _memoryIndicator: MemoryHealthIndicator,
-        private _dbIndicator: TypeOrmHealthIndicator
-    ) {}
+        private readonly _configService: ConfigService<
+            Pick<IConfigBase, 'health' | 'env'>
+        >,
+        private readonly _healthCheck: HealthCheckService,
+        private readonly _httpIndicator: HttpHealthIndicator,
+        private readonly _diskIndicator: DiskHealthIndicator,
+        private readonly _memoryIndicator: MemoryHealthIndicator
+    ) {
+        this._health = this._configService.getOrThrow('health');
+        this._env = this._configService.getOrThrow('env');
 
-    private readonly _loggerService: ILoggerService = new LoggerService(
-        HealthController.name
-    );
+        this._services = {
+            healthCheck: this._healthCheck,
+            memoryIndicator: this._memoryIndicator,
+            diskIndicator: this._diskIndicator,
+            httpIndicator: this._httpIndicator
+        };
+    }
 
-    @Get('/')
+    // --- Public -------------------------------------------------------------
+    // --- Instance --------------------
+
+    //--- Get /check -----------
+    @Get('/check')
     @ApiOperation({ summary: 'Check' })
-    async get(): PromiseRes<string> {
+    @ApiProduces(MimeType.ApplicationJson)
+    async get(): Res<string> {
         return { message: 'Check', payload: 'payload' };
     }
 
-    @Get('/health')
-    @ApiOperation({ summary: 'Check server health' })
+    //--- Get / -----------
+    @Get('/')
+    @ApiOperation({ summary: 'Check CDN health' })
+    @ApiProduces(MimeType.ApplicationJson)
     @HealthCheck()
-    async getCheckHealth(): PromiseRes<HealthCheckResult | unknown> {
+    async getCheckHealth(): Res<HealthCheckResult> {
         try {
-            const healthRes: HealthCheckResult =
-                await this._healthServices.check([
-                    () =>
-                        this._httpIndicator.pingCheck(
-                            'ping',
-                            `http://127.0.0.1:${process.env.SERVER_PORT_HTTP}/`
-                        ),
-                    () =>
-                        this._httpIndicator.responseCheck(
-                            'response',
-                            `http://127.0.0.1:${process.env.SERVER_PORT_HTTP}/`,
-                            (response) => [200, 201].includes(response.status)
-                        ),
-                    () =>
-                        this._dbIndicator.pingCheck('database ping', {
-                            timeout: DATABASE_HEALTHCHECK_TIMEOUT_MS
-                        }),
-                    () =>
-                        this._diskIndicator.checkStorage('storage', {
-                            path: path.parse(process.cwd()).root,
-                            thresholdPercent: DISK_THRESHOLD_PERCENT
-                        }),
-                    () =>
-                        this._memoryIndicator.checkRSS(
-                            'memory',
-                            MEM_RSS_THRESHOLD
-                        ),
-                    () =>
-                        this._memoryIndicator.checkHeap(
-                            'memory',
-                            MEM_HEAP_THRESHOLD
-                        )
-                ]);
+            const healthRes: HealthCheckResult = await checkHealth(
+                this._services,
+                this._env.port,
+                this._health
+            );
             return {
-                message: 'Successfully get health status',
+                message: 'Successfully got the health status',
                 payload: healthRes
             };
         } catch (error: unknown) {
-            throw new ServiceException(
-                'CHECK',
-                HealthController.name,
-                'health',
-                { error }
-            );
+            throw new InternalServerErrorException('unhealthy');
         }
     }
 }
+
+export { HealthController };
