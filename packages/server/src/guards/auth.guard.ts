@@ -1,21 +1,55 @@
+import * as jwt from 'jsonwebtoken';
 import {
     CanActivate,
     ExecutionContext,
     Inject,
     Injectable
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
-import { checkAccess } from '#shared/utils';
+import { IEnvConfig, IJwtConfig, TokenType } from '#shared/types/interfaces';
+import { IConfig } from '#/types';
+import { AuthService, ILoggerService, LoggerService } from '#/services';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
-    constructor(
-        @Inject(JwtService)
-        private _jwtService: JwtService
-    ) {}
+class AuthGuard implements CanActivate {
+    // --- Configs -------------------------------------------------------------
+    private readonly _jwt: IJwtConfig;
+    private readonly _env: IEnvConfig;
 
-    async canActivate(context: ExecutionContext): Promise<boolean> {
-        return await checkAccess(this._jwtService.verifyAsync, context);
+    // --- Logger -------------------------------------------------------------
+    private readonly _logger: ILoggerService = new LoggerService(
+        AuthGuard.name
+    );
+
+    // --- Constructor -------------------------------------------------------------
+    constructor(
+        private readonly _configService: ConfigService<IConfig>,
+        @Inject(AuthService)
+        private readonly _jwtService: AuthService
+    ) {
+        this._env = this._configService.getOrThrow('env');
+        this._jwt = this._configService.getOrThrow('jwt');
+    }
+
+    // --- Public -------------------------------------------------------------
+    // --- Instance --------------------
+    //--- canActivate -----------
+    public async canActivate(context: ExecutionContext): Promise<boolean> {
+        const req = context.switchToHttp().getRequest();
+        const token: string = AuthService.extractRefreshToken(req.headers);
+        const jwtOptions: jwt.VerifyOptions = {
+            issuer: this._env.appId,
+            audience: new RegExp(this._env.frontEndDomain)
+        };
+
+        return AuthService.verifyToken(
+            token,
+            this._jwt.tokens[TokenType.ACCESS].publicKey,
+            jwtOptions,
+            this._logger
+        );
     }
 }
+
+export { AuthGuard };

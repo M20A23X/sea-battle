@@ -1,222 +1,425 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { IncomingHttpHeaders } from 'http';
+import { v4 } from 'uuid';
+import * as jwt from 'jsonwebtoken';
+import {
+    BadRequestException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    UnauthorizedException
+} from '@nestjs/common';
+import { JwtService, JwtSignOptions, JwtVerifyOptions } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { isNil, isUndefined } from '@nestjs/common/utils/shared.utils';
 
 import {
-    IUser,
+    IAccessPayload,
+    IAccessToken,
+    IAuthCredentials,
+    IAuthResult,
+    IEmailPayload,
+    IEmailToken,
+    IEnvConfig,
+    IJwtConfig,
+    IRefreshPayload,
     IRefreshToken,
-    AccessTokenRes,
-    SignInRes,
-    Res,
-    PromiseRes,
-    ServiceCode,
-    UserPublicData
-} from '#shared/types';
+    ISession,
+    IUser,
+    IUserCreate,
+    IUserPublic,
+    TokenType
+} from '#shared/types/interfaces';
+import { ILoggerService, LoggerService, UserService } from '#/services';
+import { IConfig } from '#/types';
+import { MailerService } from '#/services/mailer.service';
+import { IEmailConfig } from '#/types/interfaces';
 
-import {
-    GetUnSuccessRes,
-    decipherCode,
-    getServiceCode,
-    requireGetRes,
-    signJwtToken
-} from '#shared/utils';
-import { createRefreshToken } from '#/utils';
-
-import {
-    IRefreshTokenRepository,
-    RefreshTokenRepository
-} from '#/repositories';
-
-import {
-    ILoggerService,
-    LoggerService,
-    IUserService,
-    UserService
-} from '#/services';
-
-import { User } from '#/modules/user';
-
-export interface IAuthService {
-    signIn(
-        username: string,
-        password: string,
-        accessIpv6: string
-    ): PromiseRes<SignInRes>;
-    refreshAccessToken(
-        token: string | undefined,
-        accessIpv6: string
-    ): PromiseRes<AccessTokenRes>;
+interface IAuthService {
+    signUp(data: IUserCreate, domain?: string): Promise<void>;
+    resetPassword(email: string, domain?: string): Promise<void>;
+    signIn(data: IAuthCredentials, domain?: string): Promise<IAuthResult>;
+    refreshTokenAccess(refreshToken: string): Promise<ISession>;
+    signOut(refreshToken: string): Promise<void>;
 }
 
 @Injectable()
-export class AuthService implements IAuthService {
-    constructor(
-        @Inject(JwtService)
-        private _jwtService: JwtService,
-        @Inject(UserService)
-        private _usersService: IUserService,
-        @Inject(RefreshTokenRepository)
-        private _refreshTokenRepository: IRefreshTokenRepository
-    ) {}
+class AuthService implements IAuthService {
+    // --- Configs -------------------------------------------------------------
+    private readonly _jwt: IJwtConfig;
+    private readonly _env: IEnvConfig;
+    private readonly _email: IEmailConfig;
 
-    ///--- Private ---///
-    private readonly _loggerService: ILoggerService = new LoggerService(
-        UserService.name
+    // --- Logger -------------------------------------------------------------
+    private readonly _logger: ILoggerService = new LoggerService(
+        AuthService.name
     );
-    private readonly _getRes = requireGetRes(AuthService.name);
 
-    private async _deleteExpiredToken(
-        token: string,
-        getUnSuccessRes: GetUnSuccessRes
+    // --- Constructor -------------------------------------------------------------
+    constructor(
+        private readonly _configService: ConfigService<IConfig>,
+        private readonly _mailerService: MailerService,
+        @Inject(CACHE_MANAGER)
+        private readonly _cacheManager: Cache,
+        @Inject(JwtService)
+        private readonly _jwtService: JwtService,
+
+        @Inject(UserService)
+        private readonly _usersService: UserService
     ) {
+        this._jwt = _configService.getOrThrow('jwt');
+        this._env = _configService.getOrThrow('env');
+        this._email = _configService.getOrThrow('email');
+    }
+
+    // --- Public -------------------------------------------------------------
+
+    // --- Static --------------------
+
+    //--- verifyToken -----------
+    public static verifyToken<T = IAccessToken | IRefreshToken | IEmailToken>(
+        token: string,
+        secret: string,
+        options: JwtVerifyOptions,
+        logger: ILoggerService
+    ): T {
+        logger.log('Signing up a new user...');
+        logger.debug({ token, secret, options });
+
         try {
-            await this._refreshTokenRepository.deleteToken(token);
-        } catch (error: unknown) {
-            const serviceCode: ServiceCode | undefined = getServiceCode(error);
-            if (!serviceCode) throw error;
-            throw getUnSuccessRes(serviceCode);
+            const payload: T = jwt.verify(token, secret, options) as T;
+            logger.debug(payload);
+            return payload;
+        } catch (error) {
+            if (error instanceof jwt.TokenExpiredError)
+                throw new BadRequestException('Token expired');
+            if (error instanceof jwt.JsonWebTokenError)
+                throw new BadRequestException('Invalid token');
+            throw new InternalServerErrorException(error);
         }
     }
 
-    ///--- Public ---///
-    public async signIn(
-        username: string,
-        password: string,
-        accessIpv6: string
-    ): PromiseRes<SignInRes> {
-        const [getSuccessRes, getUnSuccessRes] = this._getRes(
-            'SIGN_IN',
-            User.name
-        );
+    //--- extractRefreshToken -----------
+    public static extractRefreshToken(headers: IncomingHttpHeaders): string {
+        const { 'x-refresh-token': token } = headers || {};
+        if (!token) throw new BadRequestException('no refresh token provided');
+        return token;
+    }
 
-        const readRes: Res<IUser[]> = await this._usersService.readUsers(
-            username,
-            true,
+    // --- Instance --------------------
+
+    //--- signUp -----------
+    public async signUp(data: IUserCreate, domain?: string): Promise<void> {
+        this._logger.log('Signing up a new user...');
+        this._logger.debug({ data, domain });
+
+        const userId: number = await this._usersService.create(data);
+        const [user]: IUser[] = await this._usersService.read(
+            'userId',
+            { userId },
             true
         );
-        const [user]: IUser[] = readRes.payload || [];
-        const { userUUID: uuid } = user;
+        const confirmationToken = this._generateToken(
+            user,
+            TokenType.CONFIRMATION,
+            domain
+        );
 
-        const checkPasswordRes: boolean =
-            await this._usersService.checkPassword(user, password);
-        if (!checkPasswordRes)
-            throw getUnSuccessRes('PASSWORDS_DONT_MATCH', { username });
+        await this._mailerService.sendEmailConfirmation(
+            user,
+            confirmationToken
+        );
 
-        const { password: _, userId, ...userPublicData } = user;
-        const refreshTokenUnused: IRefreshToken = {
-            userId,
-            accessIpv6: accessIpv6,
-            ...createRefreshToken()
-        };
-
-        let refreshToken: string | undefined;
-        try {
-            await this._refreshTokenRepository.insertToken(refreshTokenUnused);
-            refreshToken = refreshTokenUnused.token;
-        } catch (error: unknown) {
-            const serviceCode: ServiceCode | undefined = getServiceCode(error);
-            if (serviceCode !== 'ER_DUP_ENTRY') throw error;
-
-            const decipheredCode: string = decipherCode(
-                User.name,
-                'ER_DUP_ENTRY',
-                { user: uuid }
-            );
-            const errMsg = `Skipping create new refresh token: ${decipheredCode}`;
-            this._loggerService.warn(errMsg);
-
-            let readResRaw: any;
-            try {
-                readResRaw = await this._refreshTokenRepository.readToken(
-                    user.userId
-                );
-            } catch (error: unknown) {
-                const serviceCode: ServiceCode | undefined =
-                    getServiceCode(error);
-                if (!serviceCode) throw error;
-                throw getUnSuccessRes(serviceCode);
-            }
-
-            const isCorrect: boolean =
-                typeof readResRaw?.[0]?.token === 'string';
-            if (!isCorrect) throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
-            refreshToken = (readResRaw as IRefreshToken[])?.[0]?.token;
-        }
-
-        if (typeof refreshToken !== 'string')
-            throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
-
-        const signInPayload: SignInRes = {
-            user: userPublicData,
-            accessToken: await signJwtToken(
-                this._jwtService,
-                process.env.JWT_SECRET || '',
-                userId,
-                username
-            ),
-            refreshToken
-        };
-        return getSuccessRes({ username }, signInPayload);
+        this._logger.debug({ user, confirmationToken });
     }
 
-    public async refreshAccessToken(
-        token: string | undefined,
-        accessIpv6: string
-    ): PromiseRes<AccessTokenRes> {
-        const [getSuccessRes, getUnSuccessRes] = this._getRes(
-            'REFRESH',
-            'access token'
+    //--- resetPasswordEmail -----------
+    public async resetPassword(email: string, domain?: string): Promise<void> {
+        this._logger.log('Sending ...');
+        this._logger.debug({ email, domain });
+
+        const [user]: IUser[] = await this._usersService.read(
+            'email',
+            { email },
+            true
         );
 
-        if (!token) throw getUnSuccessRes('NO_TOKEN');
+        const resetToken = AuthService._generateToken(
+            user,
+            TokenType.RESET_PASSWORD,
+            { audience: domain }
+        );
 
-        let readResRaw: any;
-        try {
-            readResRaw = await this._refreshTokenRepository.readToken(token);
-        } catch (error: unknown) {
-            const serviceCode: ServiceCode | undefined = getServiceCode(error);
-            if (!serviceCode) throw error;
-            throw getUnSuccessRes(serviceCode);
-        }
+        this._logger.debug({ user, resetToken });
 
-        const isArray: boolean = readResRaw instanceof Array;
-        if (!isArray) throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
-        let readTokenRes = readResRaw as any[];
+        await this._mailerService.sendResetPasswordEmail(user, resetToken);
+    }
 
-        if (!readTokenRes.length) throw getUnSuccessRes('NO_SESSION');
+    //--- singIn -----------
+    public async signIn(
+        data: IAuthCredentials,
+        domain?: string
+    ): Promise<IAuthResult> {
+        const { usernameOrEmail, password } = data;
 
-        const isCorrect: boolean = typeof readResRaw?.[0]?.token === 'string';
-        if (!isCorrect) throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
-        readTokenRes = readResRaw as IRefreshToken[];
+        this._logger.log('Signing in the user...');
+        this._logger.debug({ data, domain });
 
-        const {
-            token: readToken,
-            userId,
-            accessIpv6: lastAccessIp,
-            expirationDateTime
-        } = readTokenRes[0];
-
-        if (accessIpv6 !== lastAccessIp) throw getUnSuccessRes('IP_CHANGED');
-
-        if (new Date(expirationDateTime).getTime() < new Date().getTime()) {
-            await this._deleteExpiredToken(readToken, getUnSuccessRes);
-            throw getUnSuccessRes('SESSION_EXPIRED');
-        }
-
-        const readUsersRes: Res<UserPublicData[]> =
-            await this._usersService.readUsers(
-                { startId: userId, endId: userId },
-                false
+        let user: IUser;
+        if (usernameOrEmail.includes('@')) {
+            [user] = await this._usersService.read(
+                'email',
+                { email: usernameOrEmail },
+                true
             );
-        if (!readUsersRes.payload?.length)
-            throw getUnSuccessRes('UNEXPECTED_DB_ERROR');
+        } else {
+            [user] = await this._usersService.read(
+                'username',
+                { username: usernameOrEmail },
+                true
+            );
+        }
 
-        const accessToken: string = await signJwtToken(
-            this._jwtService,
-            process.env.JWT_SECRET || '',
-            userId,
-            readUsersRes.payload[0].username
+        await UserService.checkPassword(user, password, this._logger);
+
+        if (!user.credentials.confirmed) {
+            const confirmationToken: string = this._generateToken(
+                user,
+                TokenType.CONFIRMATION,
+                domain
+            );
+            await this._mailerService.sendEmailConfirmation(
+                user,
+                confirmationToken
+            );
+            throw new UnauthorizedException(
+                'Please confirm your email, a new email has been sent'
+            );
+        }
+
+        const [accessToken, refreshToken] = this._generateAuthTokens(
+            user,
+            domain
         );
 
-        return getSuccessRes(undefined, { accessToken }, 'access token');
+        this._logger.debug({ user, accessToken, refreshToken });
+
+        const userPublic: IUserPublic = {
+            email: user.email,
+            username: user.username,
+            credentials: user.credentials,
+            imgPath: user.imgPath,
+            uuid: user.uuid
+        };
+
+        return { user: userPublic, session: { accessToken, refreshToken } };
+    }
+
+    //--- refreshTokenAccess -----------
+    public async refreshTokenAccess(refreshToken: string): Promise<ISession> {
+        const { userId, token } = this._verifyToken(
+            refreshToken,
+            TokenType.REFRESH
+        );
+
+        this._logger.log('Refreshing token access...');
+        this._logger.debug({ userId, token });
+
+        await this._checkTokenBlacklisted(userId, token);
+        const [user] = await this._usersService.read(
+            'userId',
+            { userId },
+            true
+        );
+
+        const [newAccessToken, newRefreshToken] = this._generateToken(
+            user,
+            token
+        );
+
+        this._logger.debug({
+            user,
+            accessToken: newAccessToken,
+            newRefreshToken
+        });
+
+        return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    }
+
+    //--- signOut -----------
+    public async signOut(refreshToken: string): Promise<void> {
+        const { userId, token, exp } = this._verifyToken<IRefreshToken>(
+            refreshToken,
+            TokenType.REFRESH
+        );
+
+        this._logger.log('Signing out the user...');
+        this._logger.debug({ userId, token, refreshToken });
+
+        await this._blacklistToken(userId, token, exp);
+    }
+
+    // --- Private ------------------------------------------------------------
+    // --- Static --------------------
+    private static _generateToken(
+        payload: IAccessPayload | IEmailPayload | IRefreshPayload,
+        secret: string,
+        options: JwtSignOptions
+    ): string {
+        return jwt.sign(payload, secret, options);
+    }
+
+    // --- Instance --------------------
+    //--- _generateToken -----------
+    private _generateToken(
+        user: IUser,
+        tokenType: TokenType,
+        token?: string
+    ): string {
+        const jwtOptions: JwtSignOptions = {
+            algorithm: 'HS256',
+            privateKey: this._jwt.tokens.access.privateKey,
+            issuer: this._env.appId,
+            audience: this._env.frontEndDomain,
+            subject: this._email.credentials.username
+        };
+
+        this._logger.log('Generating new tokens...');
+        this._logger.debug({ user, tokenType, token, jwtOptions });
+
+        switch (tokenType) {
+            case TokenType.ACCESS:
+                const { privateKey, timeMs: accessTime } =
+                    this._jwt.tokens.access;
+                return AuthService._generateToken(
+                    { userId: user.userId, username: user.username },
+                    privateKey,
+                    { ...jwtOptions, expiresIn: accessTime, algorithm: 'RS256' }
+                );
+            case TokenType.REFRESH:
+                const { secret: refreshSecret, timeMs: refreshTime } =
+                    this._jwt.tokens.refresh;
+                return AuthService._generateToken(
+                    {
+                        userId: user.userId,
+                        username: user.username,
+                        version: user.credentials.version,
+                        token: token ?? v4()
+                    },
+                    refreshSecret,
+                    { ...jwtOptions, expiresIn: refreshTime }
+                );
+
+            case TokenType.CONFIRMATION:
+            case TokenType.RESET_PASSWORD:
+                const { secret, time } = this._jwt[tokenType];
+                return AuthService._generateToken(
+                    {
+                        userId: user.userId,
+                        username: user.username,
+                        version: user.credentials.version
+                    },
+                    secret,
+                    { ...jwtOptions, expiresIn: time }
+                );
+        }
+    }
+
+    //--- _generateAuthTokens -----------
+    private _generateAuthTokens(user: IUser, token?: string): [string, string] {
+        this._logger.log('Generating auth tokens...');
+        this._logger.debug({ user, token });
+        return [
+            this._generateToken(user, TokenType.ACCESS, token),
+            this._generateToken(user, TokenType.REFRESH, token)
+        ];
+    }
+
+    //--- _blacklistToken -----------
+    private async _blacklistToken(
+        userId: number,
+        token: string,
+        exp: number
+    ): Promise<void> {
+        const now: number = Date.now();
+        const ttl: number = exp - now;
+
+        if (ttl > 0) {
+            await this._cacheManager.set(
+                `blacklist:${userId}:${token}`,
+                now,
+                ttl
+            );
+        }
+    }
+
+    //--- _checkTokenBlacklisted -----------
+    private async _checkTokenBlacklisted(
+        userId: number,
+        tokenId: string
+    ): Promise<void> {
+        this._logger.log('Checking if the token is blacklisted...');
+        this._logger.debug({ userId, tokenId });
+
+        const time: number | undefined = await this._cacheManager.get<number>(
+            `blacklist:${userId}:${tokenId}`
+        );
+
+        this._logger.debug({ time });
+
+        if (!isUndefined(time) && !isNil(time))
+            throw new UnauthorizedException('Invalid token');
+    }
+
+    //--- _verifyToken -----------
+    private _verifyToken<T = IAccessToken | IRefreshToken | IEmailToken>(
+        token: string,
+        tokenType: TokenType
+    ): T {
+        const jwtOptions: jwt.VerifyOptions = {
+            issuer: this._env.appId,
+            audience: new RegExp(this._env.frontEndDomain)
+        };
+
+        this._logger.log('Verifying the token...');
+        this._logger.debug({ token, tokenType, jwtOptions });
+
+        switch (tokenType) {
+            case TokenType.ACCESS:
+                const { publicKey, timeMs: accessTime } =
+                    this._jwt.tokens.access;
+
+                this._logger.debug({ publicKey, accessTime });
+
+                return AuthService.verifyToken(
+                    token,
+                    publicKey,
+                    {
+                        ...jwtOptions,
+                        maxAge: accessTime,
+                        algorithms: ['RS256']
+                    },
+                    this._logger
+                );
+            case TokenType.REFRESH:
+            case TokenType.CONFIRMATION:
+            case TokenType.RESET_PASSWORD:
+                const { secret, time } = this._jwt[tokenType];
+
+                this._logger.debug({ secret, time });
+
+                return AuthService.verifyToken(
+                    token,
+                    secret,
+                    {
+                        ...jwtOptions,
+                        maxAge: time,
+                        algorithms: ['HS256']
+                    },
+                    this._logger
+                );
+        }
     }
 }
+
+export { IAuthService, AuthService };

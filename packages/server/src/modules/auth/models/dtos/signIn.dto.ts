@@ -1,21 +1,17 @@
-import { ApiProperty, PickType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-import { SignInData, UserReqDTO } from '#shared/types';
+import { IAuthCredentials, IAuthDTO } from '#shared/types/interfaces';
+import { CredentialsDTO } from '#/modules/base';
 
-import { UserDTO } from '#/modules/user';
-
-class Data
-    extends PickType(UserDTO, ['username', 'password'])
-    implements SignInData {}
-
-class SignInDTO implements UserReqDTO<SignInData> {
-    @ApiProperty({ type: () => Data })
+//--- SignInDTO -----------
+class SignInDTO implements IAuthDTO<IAuthCredentials> {
+    @ApiProperty({ type: () => CredentialsDTO })
     @IsObject()
     @ValidateNested()
-    @Type(() => Data)
-    public user: SignInData;
+    @Type(() => CredentialsDTO)
+    public auth: IAuthCredentials;
 }
 
 export { SignInDTO };
