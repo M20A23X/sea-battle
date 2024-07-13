@@ -11,7 +11,7 @@ import {
 
 import { IConfig } from '#/types';
 import { AppModule } from '#/app.module';
-import { ILoggerService, LoggerService } from '#/services';
+import { LoggerService } from '#/services';
 
 async function bootstrap() {
     //--- App -----------
@@ -29,7 +29,7 @@ async function bootstrap() {
     app.useGlobalPipes(new ValidationPipe(validation.validation));
 
     //--- Logger -----------
-    const loggerService: ILoggerService = app.get(LoggerService);
+    const loggerService: LoggerService = app.get(LoggerService);
     const logLevels: LogLevel[] =
         env.state === NodeEnv.Production
             ? ['log', 'error', 'warn']

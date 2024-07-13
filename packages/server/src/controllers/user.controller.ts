@@ -25,7 +25,7 @@ import {
     Res
 } from '#shared/types/interfaces';
 import { UserDeleteDTO, UserUpdateDTO } from '#/modules/user';
-import { IUserService, UserService } from '#/services';
+import { UserService } from '#/services';
 import { EmailDTO, RangeDTO, UsernameDTO, UuidDTO } from '#/modules/base';
 
 interface IUserController {
@@ -43,7 +43,7 @@ class UserController implements IUserController {
     // --- Constructor -------------------------------------------------------------
     constructor(
         @Inject(UserService)
-        private readonly _usersService: IUserService
+        private readonly _usersService: UserService
     ) {}
 
     // --- Public -------------------------------------------------------------

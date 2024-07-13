@@ -30,7 +30,7 @@ import {
 } from '#shared/types/interfaces';
 import { IConfig } from '#/types';
 import { IDatabaseConfig } from '#/types/interfaces';
-import { ILoggerService, LoggerService } from '#/services/logger.service';
+import { LoggerService } from '#/services';
 import { UserRepository } from '#/repositories';
 
 interface ReadQualifier {
@@ -59,7 +59,7 @@ class UserService implements IUserService {
     private readonly _database: IDatabaseConfig;
 
     // --- Logger -------------------------------------------------------------
-    private readonly _logger: ILoggerService = new LoggerService(
+    private readonly _logger: LoggerService = new LoggerService(
         UserService.name
     );
 
@@ -79,7 +79,7 @@ class UserService implements IUserService {
     public static async checkPassword(
         user: IUser,
         password: string,
-        logger: ILoggerService
+        logger: LoggerService
     ): Promise<void> {
         const { lastPassword, passwordUpdatedAt } = user.credentials;
 
@@ -250,4 +250,4 @@ class UserService implements IUserService {
     }
 }
 
-export { ReadQualifier, IUserService, UserService };
+export { ReadQualifier, UserService };

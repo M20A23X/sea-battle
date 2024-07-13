@@ -10,7 +10,7 @@ const DataSourceProvider: FactoryProvider<DataSource> = {
     provide: DataSource,
     useFactory: async (): Promise<DataSource> => {
         const logger: ConsoleLogger = new ConsoleLogger(DataSource.name);
-        logger.log('Initializing datasource...');
+        logger.log('Initializing a datasource...');
 
         const dataSource: DataSource = new DataSource({
             ...DatabaseConfig().database.datasource,

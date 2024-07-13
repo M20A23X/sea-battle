@@ -6,8 +6,7 @@ import {
     Headers,
     Inject,
     Post,
-    Put,
-    UseGuards
+    Put
 } from '@nestjs/common';
 import {
     ApiBody,
@@ -17,12 +16,11 @@ import {
 } from '@nestjs/swagger';
 
 import { IAuthResult, ISession, MimeType, Res } from '#shared/types/interfaces';
-import { AuthGuard } from '#/guards';
 
 import { EmailDTO } from '#/modules/base';
 import { SignInDTO } from '#/modules/auth';
 import { UserSignUpDTO } from '#/modules/user';
-import { AuthService, IAuthService } from '#/services';
+import { AuthService } from '#/services';
 
 interface IAuthController {
     postSignUp(origin: string, body: UserSignUpDTO): Res;
@@ -37,7 +35,7 @@ class AuthController implements IAuthController {
     // --- Constructor -------------------------------------------------------------
     constructor(
         @Inject(AuthService)
-        private _authService: IAuthService
+        private _authService: AuthService
     ) {}
 
     // --- Public -------------------------------------------------------------
@@ -90,7 +88,6 @@ class AuthController implements IAuthController {
 
     //--- GET /refresh -----------
     @Get('/refresh')
-    @UseGuards(AuthGuard)
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Refresh token access' })
@@ -109,7 +106,6 @@ class AuthController implements IAuthController {
 
     //--- GET /signout -----------
     @Post('/signout')
-    @UseGuards(AuthGuard)
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Refresh token access' })

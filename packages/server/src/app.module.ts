@@ -23,6 +23,7 @@ import { LoggerService } from '#/services';
 @Module({
     imports: [
         CacheModule.register({ isGlobal: true }),
+        JwtModule.register({ global: true }),
         ConfigModule.forRoot({
             isGlobal: true,
             load: [
@@ -35,7 +36,6 @@ import { LoggerService } from '#/services';
                 ValidationConfig
             ]
         }),
-        JwtModule.register({ global: true }),
         HealthModule,
         MailerModule,
         UserModule,
@@ -47,10 +47,8 @@ import { LoggerService } from '#/services';
         { provide: APP_FILTER, useClass: ExceptionLoggerFilter }
     ]
 })
-class AppModule implements NestModule {
+export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
         consumer.apply(LogRequestMiddleware).forRoutes('*');
     }
 }
-
-export { AppModule };

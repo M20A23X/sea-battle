@@ -3,6 +3,7 @@ import { v4 } from 'uuid';
 import * as jwt from 'jsonwebtoken';
 import {
     BadRequestException,
+    forwardRef,
     Inject,
     Injectable,
     InternalServerErrorException,
@@ -30,10 +31,9 @@ import {
     IUserPublic,
     TokenType
 } from '#shared/types/interfaces';
-import { ILoggerService, LoggerService, UserService } from '#/services';
-import { IConfig } from '#/types';
-import { MailerService } from '#/services/mailer.service';
 import { IEmailConfig } from '#/types/interfaces';
+import { IConfig } from '#/types';
+import { LoggerService, UserService, MailerService } from '#/services';
 
 interface IAuthService {
     signUp(data: IUserCreate, domain?: string): Promise<void>;
@@ -51,22 +51,24 @@ class AuthService implements IAuthService {
     private readonly _email: IEmailConfig;
 
     // --- Logger -------------------------------------------------------------
-    private readonly _logger: ILoggerService = new LoggerService(
+    private readonly _logger: LoggerService = new LoggerService(
         AuthService.name
     );
 
     // --- Constructor -------------------------------------------------------------
     constructor(
         private readonly _configService: ConfigService<IConfig>,
-        private readonly _mailerService: MailerService,
         @Inject(CACHE_MANAGER)
         private readonly _cacheManager: Cache,
         @Inject(JwtService)
         private readonly _jwtService: JwtService,
 
-        @Inject(UserService)
-        private readonly _usersService: UserService
+        @Inject(forwardRef(() => MailerService))
+        private readonly _mailerService: MailerService,
+        @Inject(forwardRef(() => UserService))
+        private readonly _userService: UserService
     ) {
+        this._logger.log('Initializing an Auth service...');
         this._jwt = _configService.getOrThrow('jwt');
         this._env = _configService.getOrThrow('env');
         this._email = _configService.getOrThrow('email');
@@ -81,7 +83,7 @@ class AuthService implements IAuthService {
         token: string,
         secret: string,
         options: JwtVerifyOptions,
-        logger: ILoggerService
+        logger: LoggerService
     ): T {
         logger.log('Signing up a new user...');
         logger.debug({ token, secret, options });
@@ -113,8 +115,8 @@ class AuthService implements IAuthService {
         this._logger.log('Signing up a new user...');
         this._logger.debug({ data, domain });
 
-        const userId: number = await this._usersService.create(data);
-        const [user]: IUser[] = await this._usersService.read(
+        const userId: number = await this._userService.create(data);
+        const [user]: IUser[] = await this._userService.read(
             'userId',
             { userId },
             true
@@ -138,7 +140,7 @@ class AuthService implements IAuthService {
         this._logger.log('Sending ...');
         this._logger.debug({ email, domain });
 
-        const [user]: IUser[] = await this._usersService.read(
+        const [user]: IUser[] = await this._userService.read(
             'email',
             { email },
             true
@@ -167,13 +169,13 @@ class AuthService implements IAuthService {
 
         let user: IUser;
         if (usernameOrEmail.includes('@')) {
-            [user] = await this._usersService.read(
+            [user] = await this._userService.read(
                 'email',
                 { email: usernameOrEmail },
                 true
             );
         } else {
-            [user] = await this._usersService.read(
+            [user] = await this._userService.read(
                 'username',
                 { username: usernameOrEmail },
                 true
@@ -226,11 +228,7 @@ class AuthService implements IAuthService {
         this._logger.debug({ userId, token });
 
         await this._checkTokenBlacklisted(userId, token);
-        const [user] = await this._usersService.read(
-            'userId',
-            { userId },
-            true
-        );
+        const [user] = await this._userService.read('userId', { userId }, true);
 
         const [newAccessToken, newRefreshToken] = this._generateToken(
             user,
@@ -422,4 +420,4 @@ class AuthService implements IAuthService {
     }
 }
 
-export { IAuthService, AuthService };
+export { AuthService };

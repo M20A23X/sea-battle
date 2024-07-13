@@ -1,15 +1,10 @@
 import * as jwt from 'jsonwebtoken';
-import {
-    CanActivate,
-    ExecutionContext,
-    Inject,
-    Injectable
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { IEnvConfig, IJwtConfig, TokenType } from '#shared/types/interfaces';
 import { IConfig } from '#/types';
-import { AuthService, ILoggerService, LoggerService } from '#/services';
+import { AuthService, LoggerService } from '#/services';
 
 @Injectable()
 class AuthGuard implements CanActivate {
@@ -18,16 +13,10 @@ class AuthGuard implements CanActivate {
     private readonly _env: IEnvConfig;
 
     // --- Logger -------------------------------------------------------------
-    private readonly _logger: ILoggerService = new LoggerService(
-        AuthGuard.name
-    );
+    private readonly _logger: LoggerService = new LoggerService(AuthGuard.name);
 
     // --- Constructor -------------------------------------------------------------
-    constructor(
-        private readonly _configService: ConfigService<IConfig>,
-        @Inject(AuthService)
-        private readonly _jwtService: AuthService
-    ) {
+    constructor(private readonly _configService: ConfigService<IConfig>) {
         this._env = this._configService.getOrThrow('env');
         this._jwt = this._configService.getOrThrow('jwt');
     }

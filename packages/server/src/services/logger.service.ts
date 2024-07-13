@@ -14,4 +14,4 @@ class LoggerService extends ConsoleLogger implements ILoggerService {
     }
 }
 
-export { ILoggerService, LoggerService };
+export { LoggerService };

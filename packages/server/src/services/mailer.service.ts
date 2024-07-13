@@ -4,14 +4,14 @@ import Handlebars from 'handlebars';
 import { createTransport, SentMessageInfo, Transporter } from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 import { IEnvConfig, IUser } from '#shared/types/interfaces';
 
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { IConfig, ITemplatedData, ITemplates, PublicTemplates } from '#/types';
 import { IAssetsConfig, IEmailConfig } from '#/types/interfaces';
 
-import { ILoggerService, LoggerService } from '#/services/logger.service';
+import { LoggerService } from '#/services';
 
 interface IMailerService {
     sendEmailConfirmation(user: IUser, token: string): Promise<void>;
@@ -25,7 +25,7 @@ class MailerService implements IMailerService {
     private readonly _env: IEnvConfig;
 
     // --- Logger -------------------------------------------------------------
-    private readonly _logger: ILoggerService = new LoggerService(
+    private readonly _logger: LoggerService = new LoggerService(
         MailerService.name
     );
 
@@ -34,14 +34,14 @@ class MailerService implements IMailerService {
     private readonly _templates: ITemplates;
 
     // --- Constructor -------------------------------------------------------------
-    constructor(private readonly configService: ConfigService<IConfig>) {
+    constructor(private readonly _configService: ConfigService<IConfig>) {
         this._logger.log('Initializing a Mailer service...');
 
-        this._email = this.configService.getOrThrow('email');
-        this._env = this.configService.getOrThrow('email');
+        this._email = this._configService.getOrThrow('email');
+        this._env = this._configService.getOrThrow('email');
 
         const publicConfig: IAssetsConfig =
-            this.configService.getOrThrow('assets');
+            this._configService.getOrThrow('assets');
 
         const templatesPath: string = publicConfig.templates.path;
 

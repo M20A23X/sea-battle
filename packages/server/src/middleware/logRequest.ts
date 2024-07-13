@@ -1,12 +1,10 @@
 import { Inject, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import { ILoggerService, LoggerService } from 'services/logger.service';
+import { LoggerService } from 'services/logger.service';
 
 class LogRequestMiddleware implements NestMiddleware {
     // --- Constructor -------------------------------------------------------------
-    constructor(
-        @Inject(LoggerService) private _loggerService: ILoggerService
-    ) {}
+    constructor(@Inject(LoggerService) private _loggerService: LoggerService) {}
 
     // --- Public -------------------------------------------------------------
     // --- Instance --------------------

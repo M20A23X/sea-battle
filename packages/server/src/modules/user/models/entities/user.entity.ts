@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { IUserCredentialsEmbeddable, IUser } from '#shared/types/interfaces';
 import { Format } from '#shared/static/format';
-import { UserCredentialsEmbeddable } from '#/modules/user/models/entities/embeddables/UserCredentials.embeddable';
+import { UserCredentialsEmbeddable } from '#/modules/user';
 
 //--- UserEntity -----------
 @Entity({ name: 'tbl_users' })
