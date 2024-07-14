@@ -1,3 +1,4 @@
+import bodyParser from 'body-parser';
 import { NestFactory } from '@nestjs/core';
 import { INestApplication, LogLevel, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
@@ -29,16 +30,18 @@ async function bootstrap() {
     app.useGlobalPipes(new ValidationPipe(validation.validation));
 
     //--- Logger -----------
-    const loggerService: LoggerService = app.get(LoggerService);
+    const logger: LoggerService = app.get(LoggerService);
     const logLevels: LogLevel[] =
         env.state === NodeEnv.Production
             ? ['log', 'error', 'warn']
             : ['log', 'error', 'warn', 'debug', 'verbose'];
-    loggerService.setLogLevels(logLevels);
-    app.useLogger(loggerService);
+    logger.setLogLevels(logLevels);
+    app.useLogger(logger);
 
-    //--- Cors -----------
+    //--- Misc -----------
     app.enableCors({ origin: '*' });
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
 
     //--- Swagger -----------
     const config = new DocumentBuilder()
@@ -51,7 +54,7 @@ async function bootstrap() {
 
     //--- App -----------
     await app.listen(env.port);
-    loggerService.log(`Application is running on port: ${env.port}`);
+    logger.log(`Application is running on port: ${env.port}`);
 }
 
 bootstrap();

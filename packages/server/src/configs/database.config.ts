@@ -28,7 +28,7 @@ export default (): Pick<IConfig, 'database'> => {
                     Config.database.datasource.database
                 ),
                 synchronize:
-                    EnvConfig().env.state === NodeEnv.Production ??
+                    EnvConfig().env.state !== NodeEnv.Production ??
                     Config.database.datasource.synchronize,
                 type: getEnvString(
                     'DATABASE_TYPE',

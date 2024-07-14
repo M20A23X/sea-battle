@@ -3,21 +3,20 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
-
 import {
+    AssetsConfig,
     AuthConfig,
-    EnvConfig,
-    HealthConfig,
-    ValidationConfig,
     DatabaseConfig,
     EmailConfig,
-    AssetsConfig
+    EnvConfig,
+    HealthConfig,
+    ValidationConfig
 } from '#/configs';
 import { AuthGuard } from '#/guards';
-import { ExceptionLoggerFilter } from '#/filters';
+import { ExceptionFilter } from '#/filters';
 import { LogRequestMiddleware } from '#/middleware';
 
-import { AuthModule, HealthModule, UserModule, MailerModule } from '#/modules';
+import { AuthModule, HealthModule, MailerModule, UserModule } from '#/modules';
 import { LoggerService } from '#/services';
 
 @Module({
@@ -44,7 +43,7 @@ import { LoggerService } from '#/services';
     providers: [
         AuthGuard,
         LoggerService,
-        { provide: APP_FILTER, useClass: ExceptionLoggerFilter }
+        { provide: APP_FILTER, useClass: ExceptionFilter }
     ]
 })
 export class AppModule implements NestModule {

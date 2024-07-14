@@ -23,12 +23,15 @@ const DataSourceProvider: FactoryProvider<DataSource> = {
             if (dataSource.isInitialized) {
                 const message = 'Successfully initialized a datasource';
                 logger.log(message);
-            } else logger.error("Can't initialize a datasource!");
+            }
         } catch (error: unknown) {
             if (error instanceof Error) {
                 const message = `Can't initialize a datasource: ${error.message}`;
                 throw new EnvException(message);
-            } else throw error;
+            }
+            if (!dataSource.isInitialized)
+                throw new EnvException("Can't initialize a datasource!");
+            else throw error;
         }
         return dataSource;
     }

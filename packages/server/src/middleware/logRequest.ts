@@ -4,13 +4,13 @@ import { LoggerService } from 'services/logger.service';
 
 class LogRequestMiddleware implements NestMiddleware {
     // --- Constructor -------------------------------------------------------------
-    constructor(@Inject(LoggerService) private _loggerService: LoggerService) {}
+    constructor(@Inject(LoggerService) private _logger: LoggerService) {}
 
     // --- Public -------------------------------------------------------------
     // --- Instance --------------------
     //--- use -----------
     public use(req: Request, res: Response, next: NextFunction): void {
-        this._loggerService.logRequestInfo(req);
+        this._logger.logRequestInfo(req);
         return next();
     }
 }

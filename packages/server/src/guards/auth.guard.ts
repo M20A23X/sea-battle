@@ -2,7 +2,11 @@ import * as jwt from 'jsonwebtoken';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { IEnvConfig, IJwtConfig, TokenType } from '#shared/types/interfaces';
+import {
+    IEnvConfig,
+    IJwtConfig,
+    TokenTypeEnum
+} from '#shared/types/interfaces';
 import { IConfig } from '#/types';
 import { AuthService, LoggerService } from '#/services';
 
@@ -24,20 +28,23 @@ class AuthGuard implements CanActivate {
     // --- Public -------------------------------------------------------------
     // --- Instance --------------------
     //--- canActivate -----------
-    public async canActivate(context: ExecutionContext): Promise<boolean> {
+    public canActivate(context: ExecutionContext): boolean {
         const req = context.switchToHttp().getRequest();
-        const token: string = AuthService.extractRefreshToken(req.headers);
+        const token: string = AuthService.extractAccessToken(req.headers);
         const jwtOptions: jwt.VerifyOptions = {
+            algorithms: ['RS256'],
             issuer: this._env.appId,
-            audience: new RegExp(this._env.frontEndDomain)
+            audience: this._env.frontEndDomain
         };
 
-        return AuthService.verifyToken(
+        AuthService.verifyToken(
             token,
-            this._jwt.tokens[TokenType.ACCESS].publicKey,
+            this._jwt.tokens[TokenTypeEnum.ACCESS].publicKey,
             jwtOptions,
             this._logger
         );
+
+        return true;
     }
 }
 

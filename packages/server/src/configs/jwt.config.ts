@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as process from 'process';
 
 import { IConfigBase } from '#shared/types/config';
-import { IKeyPath, TokenType } from '#shared/types/interfaces';
+import { IKeyPath, TokenTypeEnum } from '#shared/types/interfaces';
 import { getEnvFloat, getEnvString } from '#shared/utils';
 
 import { EnvException } from '#shared/exceptions';
@@ -57,11 +57,11 @@ export default (): Pick<IConfigBase, 'jwt'> => {
         }
     };
 
-    if (!config.jwt.tokens[TokenType.CONFIRMATION].secret)
+    if (!config.jwt.tokens[TokenTypeEnum.CONFIRMATION].secret)
         throw new EnvException(`The JWT confirmation secret isn't set`);
-    if (!config.jwt.tokens[TokenType.RESET_PASSWORD].secret)
+    if (!config.jwt.tokens[TokenTypeEnum.RESET_PASSWORD].secret)
         throw new EnvException(`The JWT reset password secret isn't set`);
-    if (!config.jwt.tokens[TokenType.REFRESH].secret)
+    if (!config.jwt.tokens[TokenTypeEnum.REFRESH].secret)
         throw new EnvException(`The refresh secret isn't set`);
 
     return config;
