@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Matches } from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 import { IUsername } from '#shared/types/interfaces';
 import { Format } from '#shared/static';
@@ -8,6 +8,8 @@ import { Format } from '#shared/static';
 class UsernameDTO implements IUsername {
     @ApiProperty()
     @IsString()
+    @MinLength(Format.username.minLength)
+    @MaxLength(Format.username.maxLength)
     @Matches(Format.username.regex, {
         message: 'username' + Format.username.errorMessage
     })

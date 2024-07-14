@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Matches } from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 import { ICurrentPassword } from '#shared/types/interfaces';
 import { Format } from '#shared/static';
@@ -8,8 +8,10 @@ import { Format } from '#shared/static';
 class CurrentPasswordDTO implements ICurrentPassword {
     @ApiProperty()
     @IsString()
+    @MinLength(Format.password.minLength)
+    @MaxLength(Format.password.maxLength)
     @Matches(Format.password.regex, {
-        message: 'password' + Format.password.errorMessage
+        message: 'current password' + Format.password.errorMessage
     })
     public currentPassword: string;
 }

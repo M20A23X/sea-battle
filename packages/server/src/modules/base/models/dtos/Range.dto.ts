@@ -1,19 +1,23 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsPositive } from 'class-validator';
 
-import { IRange } from '#shared/types/interfaces';
+import { IIdRange } from '#shared/types/interfaces';
+import { IsBiggerThan } from '#/decorators';
 
 //--- RangeDTO -----------
-class RangeDTO implements IRange {
+class RangeDTO implements IIdRange {
     @ApiProperty()
     @IsInt()
     @IsPositive()
-    public start: number;
+    public startId: number;
 
-    @ApiProperty()
+    @ApiPropertyOptional()
     @IsInt()
     @IsPositive()
-    public end: number;
+    @IsBiggerThan('start' as keyof IIdRange, {
+        message: 'end must be grater than start'
+    })
+    public endId?: number;
 }
 
 export { RangeDTO };

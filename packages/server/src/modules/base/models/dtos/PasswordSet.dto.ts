@@ -8,7 +8,7 @@ import { PasswordDTO } from '#/modules/base';
 class PasswordSetDTO extends PasswordDTO implements IPassword {
     @ApiProperty()
     @IsString()
-    @IsNotEmpty()
+    @IsNotEmpty({ message: 'password confirm must not be empty' })
     @ValidateIf((o: PasswordSetDTO) => !!o.password)
     public passwordConfirm: string;
 }

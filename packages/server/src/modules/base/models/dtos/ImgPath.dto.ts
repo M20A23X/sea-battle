@@ -1,15 +1,17 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, Matches } from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
-import { IUser } from '#shared/types/interfaces';
+import { IImgPath } from '#shared/types/interfaces';
 import { Format } from '#shared/static';
 
 //--- ImgPathDTO -----------
-class ImgPathDTO implements Pick<IUser, 'imgPath'> {
+class ImgPathDTO implements IImgPath {
     @ApiPropertyOptional()
     @IsString()
+    @MinLength(Format.path.minLength)
+    @MaxLength(Format.path.maxLength)
     @Matches(Format.path.regex, {
-        message: 'image path ' + Format.path.errorMessage
+        message: 'image path' + Format.path.errorMessage
     })
     public imgPath: string | null;
 }

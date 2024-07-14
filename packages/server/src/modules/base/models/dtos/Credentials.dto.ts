@@ -1,8 +1,8 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 import { IAuthCredentials } from '#shared/types/interfaces';
-import { PasswordDTO } from './Password.dto';
+import { PasswordDTO } from './password.dto';
 
 //--- CredentialsDTO -----------
 class CredentialsDTO
@@ -11,6 +11,7 @@ class CredentialsDTO
 {
     @ApiProperty()
     @IsString()
+    @IsNotEmpty()
     usernameOrEmail: string;
 }
 
