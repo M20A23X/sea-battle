@@ -2,16 +2,17 @@ import { DataSource } from 'typeorm';
 import { EntityTarget } from 'typeorm/common/EntityTarget';
 import { ObjectLiteral } from 'typeorm/common/ObjectLiteral';
 
-import { CONNECTION_CHECK_INTERVAL_MS } from '#shared/static';
-
-const initializeDataSource = async (dataSource: DataSource): Promise<void> => {
+const waitDataSource = async (
+    dataSource: DataSource,
+    connectionCheckIntervalMs: number
+): Promise<void> => {
     return new Promise<void>((resolve) => {
         const interval: NodeJS.Timeout = setInterval(() => {
             if (dataSource.isInitialized) {
                 clearInterval(interval);
                 return resolve();
             }
-        }, CONNECTION_CHECK_INTERVAL_MS).unref();
+        }, connectionCheckIntervalMs).unref();
     });
 };
 
@@ -24,4 +25,4 @@ const truncateTable = async <E extends ObjectLiteral>(
     await dataSource.query('SET FOREIGN_KEY_CHECKS=1');
 };
 
-export { initializeDataSource, truncateTable };
+export { waitDataSource, truncateTable };
