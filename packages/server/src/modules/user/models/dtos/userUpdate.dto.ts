@@ -1,29 +1,28 @@
-import { ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty, IntersectionType, PartialType } from '@nestjs/swagger';
+import { IntersectionType, PartialType } from '@nestjs/swagger';
 
 import { IUserDTO, IUserUpdate } from '#shared/types/interfaces';
 import {
     CurrentPasswordDTO,
+    EmailDTO,
+    ImgPathDTO,
     PasswordSetDTO,
     UsernameDTO,
     UuidDTO
 } from '#/modules/base';
-import { ImgPathDTO } from '#/modules/base/models/dtos/ImgPath.dto';
+import { createUserDTO } from '#/utils/getModuleDTO.util';
 
 class Data
     extends IntersectionType(
         UuidDTO,
         CurrentPasswordDTO,
-        PartialType(IntersectionType(UsernameDTO, PasswordSetDTO, ImgPathDTO))
+        PartialType(
+            IntersectionType(UsernameDTO, PasswordSetDTO, EmailDTO, ImgPathDTO)
+        )
     )
     implements IUserUpdate {}
 
-class UserUpdateDTO implements IUserDTO<IUserUpdate> {
-    @ApiProperty({ type: () => Data })
-    @ValidateNested()
-    @Type(() => Data)
-    public user: IUserUpdate;
-}
+class UserUpdateDTO
+    extends createUserDTO<IUserUpdate>(Data)
+    implements IUserDTO<IUserUpdate> {}
 
 export { UserUpdateDTO };

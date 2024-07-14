@@ -5,40 +5,42 @@ import {
     Delete,
     Get,
     Inject,
-    Put
+    Put,
+    UseGuards
 } from '@nestjs/common';
 import {
     ApiBody,
     ApiConsumes,
     ApiOperation,
-    ApiProduces,
-    getSchemaPath
+    ApiProduces
 } from '@nestjs/swagger';
 
 import {
     IEmail,
-    IRange,
+    IIdRange,
     IUsername,
     IUserPublic,
     IUuid,
     MimeType,
     Res
 } from '#shared/types/interfaces';
-import { UserDeleteDTO, UserUpdateDTO } from '#/modules/user';
-import { UserService } from '#/services';
-import { EmailDTO, RangeDTO, UsernameDTO, UuidDTO } from '#/modules/base';
+import {
+    UserDeleteDTO,
+    UserReadDTOType,
+    UserReadSchema,
+    UserUpdateDTO
+} from '#/modules/user';
+import { ReadParamEnum, UserService } from '#/services';
+import { AuthGuard } from '#/guards';
 
 interface IUserController {
-    getRead(
-        query: UsernameDTO | UuidDTO | EmailDTO | RangeDTO
-    ): Res<IUserPublic[]>;
-
+    getRead(body: UserReadDTOType): Res<IUserPublic[]>;
     putUpdate(body: UserUpdateDTO): Res<IUserPublic>;
-
     delete(body: UserDeleteDTO): Res;
 }
 
 @Controller('/users')
+@UseGuards(AuthGuard)
 class UserController implements IUserController {
     // --- Constructor -------------------------------------------------------------
     constructor(
@@ -51,55 +53,41 @@ class UserController implements IUserController {
 
     //--- GET /read -----------
     @Get('/read')
-    @ApiBody({
-        schema: {
-            oneOf: [
-                { $ref: getSchemaPath(UuidDTO) },
-                { $ref: getSchemaPath(UsernameDTO) },
-                { $ref: getSchemaPath(EmailDTO) },
-                { $ref: getSchemaPath(RangeDTO) }
-            ]
-        }
-    })
+    @ApiBody(UserReadSchema)
+    @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
-    @ApiOperation({ summary: 'Read user(s) by username, uuid or email' })
-    async getRead(
-        @Body()
-        body: UsernameDTO | UuidDTO | EmailDTO | RangeDTO
-    ): Res<IUserPublic[]> {
+    @ApiOperation({
+        summary: 'Read user(s) by username, uuid, email or id range'
+    })
+    async getRead(@Body() body: UserReadDTOType): Res<IUserPublic[]> {
         let payload: IUserPublic[];
-        switch (body.constructor) {
-            case UsernameDTO:
-                payload = await this._usersService.read(
-                    'username',
-                    body as IUsername,
-                    false
-                );
-                break;
-            case UuidDTO:
-                payload = await this._usersService.read(
-                    'uuid',
-                    body as IUuid,
-                    false
-                );
-                break;
-            case EmailDTO:
-                payload = await this._usersService.read(
-                    'email',
-                    body as IEmail,
-                    false
-                );
-                break;
-            case RangeDTO:
-                payload = await this._usersService.read(
-                    'range',
-                    body as IRange,
-                    false
-                );
-                break;
-            default:
-                throw new BadRequestException('incorrect request');
-        }
+
+        if (body.user?.hasOwnProperty('username' as keyof IUsername)) {
+            payload = await this._usersService.read(
+                ReadParamEnum.Username,
+                body.user as IUsername,
+                false
+            );
+        } else if (body.user?.hasOwnProperty('uuid' as keyof IUuid)) {
+            payload = await this._usersService.read(
+                ReadParamEnum.Uuid,
+                body.user as IUuid,
+                false
+            );
+        } else if (body.user?.hasOwnProperty('email' as keyof IEmail)) {
+            payload = await this._usersService.read(
+                ReadParamEnum.Email,
+                body.user as IEmail,
+                false
+            );
+        } else if (body.user?.hasOwnProperty('startId' as keyof IIdRange)) {
+            payload = await this._usersService.read(
+                ReadParamEnum.IdRange,
+                body.user as IIdRange,
+                false
+            );
+        } else throw new BadRequestException('incorrect request');
+
         return { message: 'Successfully read the users', payload };
     }
 
