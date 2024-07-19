@@ -1,12 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import {
-    INestApplication,
-    LogLevel,
-    ModuleMetadata,
-    ValidationPipe
-} from '@nestjs/common';
+import { INestApplication, LogLevel, ModuleMetadata } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
 
@@ -32,6 +27,7 @@ import {
     ValidationConfig
 } from '#/configs';
 import { IConfig } from '#/types';
+import { ValidationPipe } from '#/pipes';
 
 type Init = [INestApplication, ISpecsConfig, LoggerService];
 

@@ -11,7 +11,6 @@ import { init } from './utils/init';
 
 import {
     CredentialsDTO,
-    CurrentPasswordDTO,
     EmailDTO,
     ImgPathDTO,
     PasswordDTO,
@@ -23,7 +22,7 @@ import {
 } from '#/modules/base';
 import { LoggerService } from '#/services';
 
-describe.skip('Base module', () => {
+describe('Base module', () => {
     let app: INestApplication;
     // --- Logger -------------------------------------------------------------
     let logger: LoggerService;
@@ -32,8 +31,6 @@ describe.skip('Base module', () => {
 
     beforeAll(async () => {
         [app, specs, logger] = await init();
-        // --- Format --------------------
-        logger.debug(JSON.stringify(Format));
     }, SpecsConfig.specs.getHookTimeoutMs());
 
     describe('DTO', function () {
@@ -43,9 +40,11 @@ describe.skip('Base module', () => {
                 'Should validate DTO without errors',
                 async () => {
                     const dtoPlain: PasswordSetDTO = {
-                        // eslint-disable-next-line sonarjs/no-duplicate-string
-                        password: 'Us23mmsv200#',
-                        passwordConfirm: 'Us23mmsv200#'
+                        passwordSet: {
+                            // eslint-disable-next-line sonarjs/no-duplicate-string
+                            password: 'Us23mmsv200#',
+                            passwordConfirm: 'Us23mmsv200#'
+                        }
                     };
                     const dto: PasswordSetDTO = plainToInstance(
                         PasswordSetDTO,
@@ -53,6 +52,7 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -72,46 +72,9 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.matches).toEqual(
                         'password' + Format.password.errorMessage
-                    );
-                },
-                specs.getHookTimeoutMs()
-            );
-        });
-
-        describe('CurrentPasswordDTO', function () {
-            it(
-                'Should validate DTO without errors',
-                async () => {
-                    const dtoPlain: CurrentPasswordDTO = {
-                        currentPassword: 'Us23mmsv200#'
-                    };
-                    const dto: CurrentPasswordDTO = plainToInstance(
-                        CurrentPasswordDTO,
-                        dtoPlain
-                    );
-
-                    const errors: ValidationError[] = await validate(dto);
-                    expect(errors).toEqual([]);
-                },
-                specs.getHookTimeoutMs()
-            );
-
-            it(
-                'Should validate DTO with matches error',
-                async () => {
-                    const dtoPlain: CurrentPasswordDTO = {
-                        currentPassword: '124'
-                    };
-                    const dto: CurrentPasswordDTO = plainToInstance(
-                        CurrentPasswordDTO,
-                        dtoPlain
-                    );
-
-                    const errors: ValidationError[] = await validate(dto);
-                    expect(errors?.[0]?.constraints?.matches).toEqual(
-                        'current password' + Format.password.errorMessage
                     );
                 },
                 specs.getHookTimeoutMs()
@@ -126,6 +89,7 @@ describe.skip('Base module', () => {
                     const dto: EmailDTO = plainToInstance(EmailDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -138,6 +102,7 @@ describe.skip('Base module', () => {
                     const dto: EmailDTO = plainToInstance(EmailDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.matches).toEqual(
                         'email' + Format.email.errorMessage
                     );
@@ -159,6 +124,7 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -176,6 +142,7 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.matches).toEqual(
                         'image path' + Format.path.errorMessage
                     );
@@ -195,6 +162,7 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -210,6 +178,7 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.matches).toEqual(
                         'password' + Format.password.errorMessage
                     );
@@ -223,8 +192,10 @@ describe.skip('Base module', () => {
                 'Should validate DTO without errors',
                 async () => {
                     const dtoPlain: PasswordSetDTO = {
-                        password: 'Us23mmsv200#',
-                        passwordConfirm: 'Us23mmsv200#'
+                        passwordSet: {
+                            password: 'Us23mmsv200#',
+                            passwordConfirm: 'Us23mmsv200#'
+                        }
                     };
                     const dto: PasswordSetDTO = plainToInstance(
                         PasswordSetDTO,
@@ -232,27 +203,8 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
-                },
-                specs.getHookTimeoutMs()
-            );
-
-            it(
-                'Should validate DTO with isNotEmpty error',
-                async () => {
-                    const dtoPlain: PasswordSetDTO = {
-                        password: '12421',
-                        passwordConfirm: ''
-                    };
-                    const dto: PasswordSetDTO = plainToInstance(
-                        PasswordSetDTO,
-                        dtoPlain
-                    );
-
-                    const errors: ValidationError[] = await validate(dto);
-                    expect(errors?.[0]?.constraints?.isNotEmpty).toEqual(
-                        'password confirm must not be empty'
-                    );
                 },
                 specs.getHookTimeoutMs()
             );
@@ -261,8 +213,10 @@ describe.skip('Base module', () => {
                 'Should validate DTO with matches error',
                 async () => {
                     const dtoPlain: PasswordSetDTO = {
-                        password: '12421',
-                        passwordConfirm: '12421'
+                        passwordSet: {
+                            password: '12421',
+                            passwordConfirm: '12421'
+                        }
                     };
                     const dto: PasswordSetDTO = plainToInstance(
                         PasswordSetDTO,
@@ -270,9 +224,10 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
-                    expect(errors?.[0]?.constraints?.matches).toEqual(
-                        'password' + Format.password.errorMessage
-                    );
+                    logger.debug(errors);
+                    expect(
+                        errors?.[0]?.children?.[0]?.constraints?.matches
+                    ).toEqual('password' + Format.password.errorMessage);
                 },
                 specs.getHookTimeoutMs()
             );
@@ -286,6 +241,7 @@ describe.skip('Base module', () => {
                     const dto: RangeDTO = plainToInstance(RangeDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -298,6 +254,7 @@ describe.skip('Base module', () => {
                     const dto: RangeDTO = plainToInstance(RangeDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.isBiggerThan).toEqual(
                         'end must be grater than start'
                     );
@@ -312,8 +269,9 @@ describe.skip('Base module', () => {
                     const dto: RangeDTO = plainToInstance(RangeDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.isInt).toEqual(
-                        'start must be an integer number'
+                        'startId must be an integer number'
                     );
                 },
                 specs.getHookTimeoutMs()
@@ -328,6 +286,7 @@ describe.skip('Base module', () => {
                     const dto: TokenDTO = plainToInstance(TokenDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -340,6 +299,7 @@ describe.skip('Base module', () => {
                     const dto: TokenDTO = plainToInstance(TokenDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.isNotEmpty).toEqual(
                         'token must not be empty'
                     );
@@ -361,6 +321,7 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -378,6 +339,7 @@ describe.skip('Base module', () => {
                     );
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.matches).toEqual(
                         'username' + Format.username.errorMessage
                     );
@@ -394,6 +356,7 @@ describe.skip('Base module', () => {
                     const dto: UuidDTO = plainToInstance(UuidDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors).toEqual([]);
                 },
                 specs.getHookTimeoutMs()
@@ -406,6 +369,7 @@ describe.skip('Base module', () => {
                     const dto: UuidDTO = plainToInstance(UuidDTO, dtoPlain);
 
                     const errors: ValidationError[] = await validate(dto);
+                    logger.debug(errors);
                     expect(errors?.[0]?.constraints?.isUuid).toEqual(
                         'uuid must be a UUID'
                     );
