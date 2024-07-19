@@ -11,7 +11,7 @@ import { EnvConfig } from '#/configs';
 export default (): Pick<IConfig, 'database'> => {
     const config: Pick<IConfig, 'database'> = {
         database: {
-            passwordSalt: getEnvString('DATABASE_PASSWORD_SALT'),
+            passwordSecret: getEnvString('DATABASE_PASSWORD_SECRET'),
             datasource: {
                 username: getEnvString('DATABASE_USERNAME'),
                 password: getEnvString('DATABASE_PASSWORD'),
@@ -46,7 +46,7 @@ export default (): Pick<IConfig, 'database'> => {
         throw new EnvException(`The username isn't set`);
     if (!config.database.datasource.password)
         throw new EnvException(`The password isn't set`);
-    if (!config.database.passwordSalt)
+    if (!config.database.passwordSecret)
         throw new EnvException(`The password salt isn't set`);
 
     return config;

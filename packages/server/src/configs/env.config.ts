@@ -9,11 +9,12 @@ export default (): Pick<IConfigBase, 'env'> => {
     const config: Pick<IConfigBase, 'env'> = {
         env: {
             appId: getEnvString('APP_ID'),
+            appName: getEnvString('APP_NAME'),
             port: getEnvFloat('APP_PORT', Config.env.port),
             portWs: getEnvFloat('APP_PORT_WS', Config.env.portWs),
-            frontEndDomain: getEnvString(
-                'FE_DOMAIN',
-                Config.env.frontEndDomain
+            frontEndOrigin: getEnvString(
+                'FE_ORIGIN',
+                Config.env.frontEndOrigin
             ),
             state: getEnvString('NODE_ENV', Config.env.state) as NodeEnv
         }

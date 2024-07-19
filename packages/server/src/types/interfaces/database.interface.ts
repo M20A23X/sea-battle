@@ -10,7 +10,7 @@ type DatasourceConfigDefault = Required<
 interface IDatabaseConfig {
     datasource: MysqlConnectionOptions;
     limitFallback: number;
-    passwordSalt: string;
+    passwordSecret: string;
 }
 
 interface IDatabaseConfigDefault

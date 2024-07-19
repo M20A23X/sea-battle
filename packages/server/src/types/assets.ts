@@ -1,8 +1,8 @@
 import { TemplateDelegate } from 'handlebars';
 
 enum PublicTemplates {
-    EmailConfirm = 'email-confirm',
-    PasswordReset = 'password-reset'
+    EmailConfirmation = 'email-confirm',
+    PasswordResetting = 'reset-password'
 }
 
 interface ITemplatedData {

@@ -1,6 +1,6 @@
 import bodyParser from 'body-parser';
 import { NestFactory } from '@nestjs/core';
-import { INestApplication, LogLevel, ValidationPipe } from '@nestjs/common';
+import { INestApplication, LogLevel } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 
@@ -9,8 +9,10 @@ import {
     IValidationConfig,
     NodeEnv
 } from '#shared/types/interfaces';
-
 import { IConfig } from '#/types';
+
+import { ValidationPipe } from '#/pipes';
+
 import { AppModule } from '#/app.module';
 import { LoggerService } from '#/services';
 

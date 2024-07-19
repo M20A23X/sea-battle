@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
+import { NodeEnv } from '#shared/types/interfaces';
 import {
     AssetsConfig,
     AuthConfig,
@@ -33,7 +34,9 @@ import { LoggerService } from '#/services';
                 HealthConfig,
                 AssetsConfig,
                 ValidationConfig
-            ]
+            ],
+            envFilePath:
+                EnvConfig().env.state === NodeEnv.Testing ? '.env.test' : '.env'
         }),
         HealthModule,
         MailerModule,

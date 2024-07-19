@@ -5,9 +5,9 @@ import { IConfigDefault } from '#/types/config';
 const Config: IConfigDefault = {
     ...ConfigBasic,
     email: {
-        host: 'smtp.gmail.com',
+        host: 'sandbox.smtp.mailtrap.io',
         port: 587,
-        secure: true
+        secure: false
     },
     database: {
         datasource: {
@@ -22,8 +22,9 @@ const Config: IConfigDefault = {
     env: {
         port: 5000,
         portWs: 5002,
+        appName: 'App',
         state: NodeEnv.Development,
-        frontEndDomain: 'http://localhost:3000'
+        frontEndOrigin: 'http://localhost:3000'
     }
 };
 
