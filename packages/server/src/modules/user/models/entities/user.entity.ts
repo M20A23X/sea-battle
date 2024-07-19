@@ -1,24 +1,22 @@
 import {
     Column,
-    CreateDateColumn,
     Entity,
     Generated,
     PrimaryGeneratedColumn,
-    Unique,
-    UpdateDateColumn
+    Unique
 } from 'typeorm';
-import { IUser } from '#shared/types/interfaces';
+import { IUser, IUserCredentials } from '#shared/types/interfaces';
 import { Format } from '#shared/static/format';
-import { getMySqlDate } from '#/utils';
+import { UserCredentialsEmbeddable } from '#/modules/user/models/entities/embeddables/UserCredentials.embeddable';
 
 //--- UserEntity -----------
 @Entity({ name: 'tbl_users' })
 class UserEntity implements IUser {
     @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'users_PK_userId' })
-    public userId: number;
+    public readonly userId: number;
     @Column({ type: 'uuid' })
     @Generated('uuid')
-    public uuid: string;
+    public readonly uuid: string;
 
     @Column({ type: 'varchar' })
     @Unique('users_UQ_email', ['email'])
@@ -34,39 +32,17 @@ class UserEntity implements IUser {
     @Column({ type: 'varchar', nullable: true, length: Format.path.maxLength })
     public imgPath: string | null;
 
-    @Column({ type: 'int', default: 0 })
-    public version: number;
+    @Column(() => UserCredentialsEmbeddable)
+    public readonly credentials: IUserCredentials;
 
-    @UpdateDateColumn({ type: 'timestamp', default: getMySqlDate() })
-    public updatedAt: Date;
-
-    @Column({ type: 'timestamp', default: getMySqlDate() })
-    public passwordUpdatedAt: Date;
-
-    @CreateDateColumn({ type: 'timestamp' })
-    public createdAt: Date;
-
-    @Column({ type: 'boolean', default: false })
-    public confirmed: boolean;
-
-    public set setPassword(password: string) {
-        this.updateVersion();
-        this.passwordUpdatedAt = this._updateUpdatedAt();
+    public static updatePassword(entity: UserEntity, password: string): void {
+        entity.password = password;
+        entity.credentials.passwordUpdatedAt = new Date();
     }
 
-    public confirm(): void {
-        this.confirmed = true;
-        this._updateUpdatedAt();
-    }
-
-    public updateVersion(): void {
-        this.version++;
-        this._updateUpdatedAt();
-    }
-
-    private _updateUpdatedAt(): Date {
-        this.updatedAt = new Date();
-        return this.updatedAt;
+    public static updateVersion(entity: UserEntity, date?: Date): void {
+        entity.credentials.version++;
+        entity.credentials.updatedAt = date ?? new Date();
     }
 }
 

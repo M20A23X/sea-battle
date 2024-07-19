@@ -1,5 +1,4 @@
 export * from './models/dtos/credentials.dto';
-export * from './models/dtos/currentPassword.dto';
 export * from './models/dtos/email.dto';
 export * from './models/dtos/imgPath.dto';
 export * from './models/dtos/password.dto';

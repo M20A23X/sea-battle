@@ -1,6 +1,9 @@
+import { QueryError } from 'mysql2';
+import CryptoJS from 'crypto-js';
 import {
     BadRequestException,
     ConflictException,
+    ConsoleLogger,
     Inject,
     Injectable,
     InternalServerErrorException,
@@ -15,12 +18,12 @@ import {
     UpdateResult
 } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { compareSync, hashSync } from 'bcryptjs';
 
 import {
     IEmail,
     IIdRange,
     IUser,
+    IUserBase,
     IUserCreate,
     IUserId,
     IUsername,
@@ -29,9 +32,10 @@ import {
     IUuid,
     UserType
 } from '#shared/types/interfaces';
-import { QueryError } from 'mysql2';
 import { IConfig } from '#/types';
 import { IDatabaseConfig } from '#/types/interfaces';
+
+import { UserEntity } from '#/modules/user';
 import { LoggerService } from '#/services';
 import { UserRepository } from '#/repositories';
 
@@ -42,7 +46,6 @@ enum ReadParamEnum {
     Username = 'username',
     IdRange = 'range'
 }
-
 interface ReadParam {
     [ReadParamEnum.UserId]: IUserId;
     [ReadParamEnum.Uuid]: IUuid;
@@ -59,7 +62,7 @@ interface IUserService {
         requirePrivate: R
     ): Promise<UserType<R>[]>;
     update(data: IUserUpdate): Promise<IUserPublic>;
-    delete(uuid: string, currentPassword: string): Promise<void>;
+    delete(uuid: string): Promise<void>;
 }
 
 @Injectable()
@@ -82,23 +85,85 @@ class UserService implements IUserService {
         this._database = this._configService.getOrThrow('database');
     }
 
+    // --- Static -------------------------------------------------------------
+
+    // --- Private -------------------------------------------------------------
+
+    //--- _encryptPassword -----------
+    private static _encryptPassword(
+        password: string,
+        secret: string,
+        logger: ConsoleLogger
+    ): string {
+        logger.log('Ciphering the password...');
+        logger.debug({ password, secret });
+
+        const cipheredWords: CryptoJS.lib.CipherParams = CryptoJS.AES.encrypt(
+            password,
+            secret
+        );
+
+        const ciphered: string = cipheredWords.toString();
+
+        logger.debug({ ciphered });
+
+        return ciphered;
+    }
+
     // --- Public -------------------------------------------------------------
 
-    // --- Static --------------------
+    //--- decryptPassword -----------
+    public static decryptPassword(
+        encrypted: string,
+        secret: string,
+        logger: ConsoleLogger
+    ): string {
+        logger.log('Deciphering the encrypted password...');
+        logger.debug({ encrypted, secret });
+
+        const decipheredWords: CryptoJS.lib.WordArray = CryptoJS.AES.decrypt(
+            encrypted,
+            secret
+        );
+
+        const deciphered: string = decipheredWords.toString(CryptoJS.enc.Utf8);
+
+        logger.debug({ deciphered });
+
+        return deciphered;
+    }
 
     //--- checkPassword -----------
-    public static async checkPassword(
-        user: IUser,
+    // eslint-disable-next-line sonarjs/cognitive-complexity
+    public static checkPassword<Q extends boolean>(
+        userOrPassword: Q extends true ? string : IUser,
         password: string,
+        isQuick: Q,
+        isAuth: boolean,
+        secret: string,
         logger: LoggerService
-    ): Promise<void> {
+    ): void {
         logger.log('Checking the password...');
-        logger.debug({ user, password });
+        logger.debug({ userOrPassword, password });
 
-        if (compareSync(password, user.password)) return;
+        if (typeof userOrPassword !== 'object') {
+            if (password !== userOrPassword) {
+                const exception = isAuth
+                    ? UnauthorizedException
+                    : BadRequestException;
+                throw new exception("passwords don't match");
+            } else return;
+        } else {
+            const decryptedPassword: string = UserService.decryptPassword(
+                userOrPassword.password,
+                secret,
+                logger
+            );
+            if (password === decryptedPassword) return;
+        }
 
-        const now: number = Date.now();
-        const time: number = now - user.passwordUpdatedAt.getTime();
+        const time: number =
+            Date.now() - userOrPassword.credentials.passwordUpdatedAt.getTime();
         const hours: number = time / 3_600_000;
         const days: number = hours / 24;
         const months: number = days / 30;
@@ -119,7 +184,6 @@ class UserService implements IUserService {
                 message + hours + (hours > 1 ? 'hours ago' : 'hour ago')
             );
         }
-
         throw new UnauthorizedException(message + 'recently');
     }
 
@@ -133,28 +197,33 @@ class UserService implements IUserService {
         };
     }
 
-    // --- Instance --------------------
+    // --- Instance -------------------------------------------------------------
 
     // --- CRUD --------------------
 
     //--- Create -----------
     public async create(data: IUserCreate): Promise<number> {
-        const { password, passwordConfirm } = data;
+        const { passwordSet } = data;
 
         this._logger.log('Creating a new user...');
         this._logger.debug({ data });
 
-        if (password !== passwordConfirm)
-            throw new BadRequestException("passwords don't match");
-
-        const passwordHash: string = hashSync(
-            password,
-            this._database.passwordSalt
+        UserService.checkPassword(
+            data.passwordSet.password,
+            data.passwordSet.passwordConfirm,
+            true,
+            false,
+            this._database.passwordSecret,
+            this._logger
         );
-
-        const user = this._repository.create({
+        const encryptedPassword: string = UserService._encryptPassword(
+            passwordSet.password,
+            this._database.passwordSecret,
+            this._logger
+        );
+        const user: UserEntity = this._repository.create({
             ...data,
-            password: passwordHash
+            password: encryptedPassword
         });
 
         try {
@@ -166,7 +235,7 @@ class UserService implements IUserService {
         } catch (error: unknown) {
             if ((error as QueryError)?.code === 'ER_DUP_ENTRY') {
                 throw new ConflictException(
-                    'user with this credentials already exists'
+                    'user with specified credentials already exists'
                 );
             }
             throw new InternalServerErrorException();
@@ -215,9 +284,9 @@ class UserService implements IUserService {
         if (!repoRes.length)
             throw new NotFoundException("user with specified data isn't found");
 
-        let result: IUser[] | IUserPublic[] = repoRes;
-        if (!requirePrivate)
-            result = repoRes.map(UserService.extractUserPublic);
+        const result: IUserPublic[] = requirePrivate
+            ? repoRes
+            : repoRes.map(UserService.extractUserPublic);
 
         this._logger.debug({ result });
 
@@ -226,7 +295,14 @@ class UserService implements IUserService {
 
     //--- Update -----------
     public async update(data: IUserUpdate): Promise<IUserPublic> {
-        const { uuid, currentPassword, passwordConfirm, ...dbData } = data;
+        const { uuid, passwordSet } = data;
+
+        const dbData: Partial<IUserBase> = {
+            email: data.email,
+            username: data.username,
+            imgPath: data.imgPath
+        };
+
         const [user]: IUser[] = await this.read(
             ReadParamEnum.Uuid,
             { uuid },
@@ -236,20 +312,29 @@ class UserService implements IUserService {
         this._logger.log('Updating the user...');
         this._logger.debug({ data, user });
 
-        if (!Object.entries(dbData).length)
-            throw new BadRequestException('nothing to update');
+        const isDataEmpty = !Object.entries({ ...dbData, passwordSet }).length;
+        if (isDataEmpty) throw new BadRequestException('nothing to update');
 
-        await UserService.checkPassword(user, currentPassword, this._logger);
+        if (passwordSet?.password) {
+            UserService.checkPassword(
+                passwordSet.password,
+                passwordSet.passwordConfirm,
+                true,
+                false,
+                this._database.passwordSecret,
+                this._logger
+            );
+            const encryptedPassword: string = UserService._encryptPassword(
+                passwordSet.password,
+                this._database.passwordSecret,
+                this._logger
+            );
+            UserEntity.updatePassword(user, encryptedPassword);
+        }
 
-        if (dbData.password !== passwordConfirm)
-            throw new BadRequestException("passwords don't match");
-        if (dbData.password) user.setPassword = dbData.password;
-
-        user.updateVersion();
-
-        const result: UpdateResult = await this._repository.update(
-            { uuid },
-            { ...user, ...dbData }
+        const result: UpdateResult = await this._repository.updateEntity(
+            { ...user, ...dbData },
+            this._logger
         );
 
         const [updatedUser]: IUserPublic[] = await this.read(
@@ -264,7 +349,7 @@ class UserService implements IUserService {
     }
 
     //--- Delete -----------
-    public async delete(uuid: string, currentPassword: string): Promise<void> {
+    public async delete(uuid: string): Promise<void> {
         const [user]: IUser[] = await this.read(
             ReadParamEnum.Uuid,
             { uuid },
@@ -274,7 +359,6 @@ class UserService implements IUserService {
         this._logger.log('Deleting the user...');
         this._logger.debug({ uuid, user });
 
-        await UserService.checkPassword(user, currentPassword, this._logger);
         const result: DeleteResult = await this._repository.delete({ uuid });
 
         this._logger.debug({ result });

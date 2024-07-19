@@ -10,6 +10,6 @@ import { UserRepository } from '#/repositories';
     imports: [DataSourceModule],
     controllers: [UserController],
     providers: [UserRepository, UserService],
-    exports: [UserService]
+    exports: [UserService, UserRepository]
 })
 export class UserModule {}

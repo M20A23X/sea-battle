@@ -34,7 +34,7 @@ class AuthGuard implements CanActivate {
         const jwtOptions: jwt.VerifyOptions = {
             algorithms: ['RS256'],
             issuer: this._env.appId,
-            audience: this._env.frontEndDomain
+            audience: this._env.frontEndOrigin
         };
 
         AuthService.verifyToken(

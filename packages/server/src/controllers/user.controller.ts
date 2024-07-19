@@ -109,7 +109,7 @@ class UserController implements IUserController {
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Delete the user' })
     async delete(@Body() { user }: UserDeleteDTO): Res {
-        await this._usersService.delete(user.uuid, user.currentPassword);
+        await this._usersService.delete(user.uuid);
         return { message: 'Successfully deleted the user' };
     }
 }

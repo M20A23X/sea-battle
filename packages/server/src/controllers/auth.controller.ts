@@ -1,4 +1,3 @@
-import { IncomingHttpHeaders } from 'http';
 import {
     Body,
     Controller,
@@ -6,7 +5,8 @@ import {
     Headers,
     Inject,
     Post,
-    Put
+    Put,
+    UseGuards
 } from '@nestjs/common';
 import {
     ApiBody,
@@ -17,17 +17,26 @@ import {
 
 import { IAuthResult, ISession, MimeType, Res } from '#shared/types/interfaces';
 
-import { EmailDTO } from '#/modules/base';
-import { SignInDTO } from '#/modules/auth';
-import { UserSignUpDTO } from '#/modules/user';
+import { AuthGuard } from '#/guards';
+
+import {
+    ConfirmationTokenDTO,
+    RefreshTokenAccessDTO,
+    RequestPasswordResetDTO,
+    ResetPasswordDTO,
+    SignInDTO,
+    SignOutDTO,
+    SignUpDTO
+} from '#/modules/auth';
 import { AuthService } from '#/services';
 
 interface IAuthController {
-    postSignUp(origin: string, body: UserSignUpDTO): Res;
-    putReset(origin: string, body: EmailDTO): Res;
+    postSignUp(origin: string, body: SignUpDTO): Res;
+    putConfirm(body: ConfirmationTokenDTO): Res;
+    putReset(body: ResetPasswordDTO): Res;
     postSignIn(origin: string, body: SignInDTO): Res<IAuthResult>;
-    getRefreshTokenAccess(headers: IncomingHttpHeaders): Res<ISession>;
-    postSignOut(headers: IncomingHttpHeaders): Res;
+    getRefreshTokenAccess(body: RefreshTokenAccessDTO): Res<ISession>;
+    postSignOut(body: SignOutDTO): Res;
 }
 
 @Controller('/auth')
@@ -43,30 +52,57 @@ class AuthController implements IAuthController {
 
     //--- POST /signup -----------
     @Post('/signup')
-    @ApiBody({ type: [UserSignUpDTO] })
+    @ApiBody({ type: [SignUpDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Sign up a new user' })
     public async postSignUp(
         @Headers('origin') origin: string,
-        @Body() body: UserSignUpDTO
+        @Body() body: SignUpDTO
     ): Res {
         await this._authService.signUp(body.auth, origin);
         return { message: 'Successfully signed up a new user' };
     }
 
-    //--- PUT /reset -----------
-    @Put('/reset')
-    @ApiBody({ type: [EmailDTO] })
+    //--- Put /confirm -----------
+    @Put('/email-confirm')
+    @ApiBody({ type: [ConfirmationTokenDTO] })
+    @ApiConsumes(MimeType.ApplicationJson)
+    @ApiProduces(MimeType.ApplicationJson)
+    @ApiOperation({ summary: 'Confirm the user' })
+    public async putConfirm(@Body() body: ConfirmationTokenDTO): Res {
+        await this._authService.confirmEmail(body.auth.token);
+        return { message: 'Successfully confirmed the user' };
+    }
+
+    //--- GET /reset -----------
+    @Get('/request-password-reset')
+    @ApiBody({ type: [RequestPasswordResetDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: "Reset the user's password" })
-    public async putReset(
+    public async putSendReset(
         @Headers('origin') origin: string,
-        @Body() body: EmailDTO
+        @Body() body: RequestPasswordResetDTO
     ): Res {
-        await this._authService.resetPassword(body.email, origin);
-        return { message: 'Successfully signed up a new user' };
+        await this._authService.sendResetPasswordToken(body.auth.email, origin);
+        return {
+            message: 'Successfully sent a link for password resetting'
+        };
+    }
+    //--- PUT /reset -----------
+    @Put('/reset-password')
+    @ApiBody({ type: [ResetPasswordDTO] })
+    @ApiConsumes(MimeType.ApplicationJson)
+    @ApiProduces(MimeType.ApplicationJson)
+    @ApiOperation({ summary: "Reset the user's password" })
+    public async putReset(@Body() body: ResetPasswordDTO): Res {
+        await this._authService.resetPassword(
+            body.auth.passwordSet.password,
+            body.auth.passwordSet.passwordConfirm,
+            body.auth.token
+        );
+        return { message: 'Successfully set a new password' };
     }
 
     //--- POST /signin -----------
@@ -88,15 +124,15 @@ class AuthController implements IAuthController {
 
     //--- GET /refresh -----------
     @Get('/refresh')
+    @ApiBody({ type: [RefreshTokenAccessDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Refresh token access' })
     public async getRefreshTokenAccess(
-        @Headers() headers: IncomingHttpHeaders
+        @Body() body: RefreshTokenAccessDTO
     ): Res<ISession> {
-        const token: string = AuthService.extractRefreshToken(headers);
         const session: ISession = await this._authService.refreshTokenAccess(
-            token
+            body.auth.token
         );
         return {
             message: 'Successfully refreshed token access',
@@ -106,12 +142,13 @@ class AuthController implements IAuthController {
 
     //--- GET /signout -----------
     @Post('/signout')
+    @UseGuards(AuthGuard)
+    @ApiBody({ type: [SignOutDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
-    @ApiOperation({ summary: 'Refresh token access' })
-    public async postSignOut(@Headers() headers: IncomingHttpHeaders): Res {
-        const token: string = AuthService.extractRefreshToken(headers);
-        await this._authService.signOut(token);
+    @ApiOperation({ summary: 'Sign out the user' })
+    public async postSignOut(@Body() body: SignOutDTO): Res {
+        await this._authService.signOut(body.auth.token);
         return { message: 'Successfully signed out the user' };
     }
 }

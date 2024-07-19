@@ -2,7 +2,6 @@ import { IntersectionType, PartialType } from '@nestjs/swagger';
 
 import { IUserDTO, IUserUpdate } from '#shared/types/interfaces';
 import {
-    CurrentPasswordDTO,
     EmailDTO,
     ImgPathDTO,
     PasswordSetDTO,
@@ -14,7 +13,6 @@ import { createUserDTO } from '#/utils/getModuleDTO.util';
 class Data
     extends IntersectionType(
         UuidDTO,
-        CurrentPasswordDTO,
         PartialType(
             IntersectionType(UsernameDTO, PasswordSetDTO, EmailDTO, ImgPathDTO)
         )

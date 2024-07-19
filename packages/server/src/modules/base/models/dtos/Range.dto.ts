@@ -14,7 +14,7 @@ class RangeDTO implements IIdRange {
     @ApiPropertyOptional()
     @IsInt()
     @IsPositive()
-    @IsBiggerThan('start' as keyof IIdRange, {
+    @IsBiggerThan('startId' as keyof IIdRange, {
         message: 'end must be grater than start'
     })
     public endId?: number;

@@ -1,17 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsObject, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-
 import { IAuthCredentials, IAuthDTO } from '#shared/types/interfaces';
 import { CredentialsDTO } from '#/modules/base';
+import { createAuthDTO } from '#/utils';
 
 //--- SignInDTO -----------
-class SignInDTO implements IAuthDTO<IAuthCredentials> {
-    @ApiProperty({ type: () => CredentialsDTO })
-    @IsObject()
-    @ValidateNested()
-    @Type(() => CredentialsDTO)
-    public auth: IAuthCredentials;
-}
+class SignInDTO
+    extends createAuthDTO(CredentialsDTO)
+    implements IAuthDTO<IAuthCredentials> {}
 
 export { SignInDTO };
