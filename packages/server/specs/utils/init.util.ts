@@ -4,30 +4,36 @@ import { JwtModule } from '@nestjs/jwt';
 import { INestApplication, LogLevel, ModuleMetadata } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
+import bodyParser from 'body-parser';
 
 import { IConfigSpecs, ISpecsConfig } from '#shared/specs/types';
-import { IValidationConfig } from '#shared/types/interfaces';
+import { IValidationConfig, NodeEnv } from '#shared/types/interfaces';
 
-import bodyParser from 'body-parser';
 import { SpecsConfig } from '../configs';
 
-import { AuthGuard } from '#/guards';
-import { ExceptionFilter } from '#/filters';
-
-import { AuthModule, HealthModule, MailerModule, UserModule } from '#/modules';
-import { LoggerService } from '#/services';
-
+import { IConfig } from '#/types';
 import {
-    AssetsConfig,
     AuthConfig,
     DatabaseConfig,
     EmailConfig,
     EnvConfig,
     HealthConfig,
+    PublicConfig,
     ValidationConfig
 } from '#/configs';
-import { IConfig } from '#/types';
+
+import { AuthGuard } from '#/guards';
+import { ExceptionFilter } from '#/filters';
 import { ValidationPipe } from '#/pipes';
+
+import {
+    AuthModule,
+    HealthModule,
+    MailerModule,
+    // ResourceModule,
+    UserModule
+} from '#/modules';
+import { LoggerService } from '#/services';
 
 type Init = [INestApplication, ISpecsConfig, LoggerService];
 
@@ -45,12 +51,19 @@ export const init = async (): Promise<Init> => {
                     EmailConfig,
                     EnvConfig,
                     HealthConfig,
-                    AssetsConfig,
+                    PublicConfig,
                     ValidationConfig
-                ]
+                ],
+                envFilePath:
+                    EnvConfig().env.state === NodeEnv.Testing
+                        ? '.env.test'
+                        : EnvConfig().env.state === NodeEnv.Production
+                        ? '.env.prod'
+                        : '.env'
             }),
             HealthModule,
             MailerModule,
+            // ResourceModule,
             UserModule,
             AuthModule
         ],
@@ -72,7 +85,7 @@ export const init = async (): Promise<Init> => {
         app.get(ConfigService);
     const specs = configService.getOrThrow('specs');
     const validation: IValidationConfig =
-        configService.getOrThrow('dtoValidation');
+        configService.getOrThrow('validation');
 
     //--- Pipes -----------
     app.useGlobalPipes(new ValidationPipe(validation.validation));

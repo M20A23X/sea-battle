@@ -7,7 +7,7 @@ import { ISpecsConfig } from '#shared/specs/types';
 import { SpecsConfig } from '#shared/specs/static';
 import { Format } from '#shared/static';
 
-import { init } from './utils/init';
+import { init } from './utils';
 
 import {
     CredentialsDTO,
@@ -16,6 +16,7 @@ import {
     PasswordDTO,
     PasswordSetDTO,
     RangeDTO,
+    // ResourceDTO,
     TokenDTO,
     UsernameDTO,
     UuidDTO
@@ -23,17 +24,59 @@ import {
 import { LoggerService } from '#/services';
 
 describe('Base module', () => {
-    let app: INestApplication;
     // --- Logger -------------------------------------------------------------
     let logger: LoggerService;
     // --- Configs --------------------
     let specs: ISpecsConfig = SpecsConfig.specs;
 
     beforeAll(async () => {
+        let app: INestApplication;
         [app, specs, logger] = await init();
     }, SpecsConfig.specs.getHookTimeoutMs());
 
     describe('DTO', function () {
+        // describe('ResourceDTO', function () {
+        //     it(
+        //         // eslint-disable-next-line sonarjs/no-duplicate-string
+        //         'Should validate DTO without errors',
+        //         async () => {
+        //             const dtoPlain: ResourceDTO = {
+        //                 path: 'some/path/file.ext'
+        //             };
+        //             const dto: ResourceDTO = plainToInstance(
+        //                 ResourceDTO,
+        //                 dtoPlain
+        //             );
+        //
+        //             const errors: ValidationError[] = await validate(dto);
+        //             logger.debug(errors);
+        //             expect(errors).toEqual([]);
+        //         },
+        //         specs.getHookTimeoutMs()
+        //     );
+        //
+        //     it(
+        //         // eslint-disable-next-line sonarjs/no-duplicate-string
+        //         'Should validate DTO with matches error',
+        //         async () => {
+        //             const dtoPlain: ResourceDTO = {
+        //                 path: 'some/wron@gpath/file.ext'
+        //             };
+        //             const dto: ResourceDTO = plainToInstance(
+        //                 ResourceDTO,
+        //                 dtoPlain
+        //             );
+        //
+        //             const errors: ValidationError[] = await validate(dto);
+        //             logger.debug(errors);
+        //             expect(errors?.[0]?.constraints?.matches).toEqual(
+        //                 'path' + Format.path.errorMessage
+        //             );
+        //         },
+        //         specs.getHookTimeoutMs()
+        //     );
+        // });
+
         describe('CredentialsDTO', function () {
             it(
                 // eslint-disable-next-line sonarjs/no-duplicate-string

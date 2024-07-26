@@ -1,11 +1,12 @@
 import * as Jwt from 'jsonwebtoken';
-import request, { Response } from 'supertest';
+import { v4 } from 'uuid';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { JwtSignOptions } from '@nestjs/jwt';
 
 import { IConfigSpecs, ISpecsConfig } from '#shared/specs/types';
+import { SpecsConfig } from '#shared/specs/static';
 import {
     IAccessPayload,
     IAuthResult,
@@ -13,20 +14,15 @@ import {
     IJwtConfig,
     IUserCreate,
     IUserPublic,
-    MimeType,
-    ResData,
     TokenTypeEnum
 } from '#shared/types/interfaces';
-import { SpecsConfig } from '#shared/specs/static';
+import { Format, Route } from '#shared/static';
 
-import { Format } from '#shared/static';
-import { v4 } from 'uuid';
-import { init } from './utils/init';
-import { truncateTable, waitDataSource } from './utils';
+import { getRoute } from 'shared/src/utils';
+import { init, requireRunTest, truncateTable, waitDataSource } from './utils';
 
 import { IConfig } from '#/types';
 import { IEmailConfig } from '#/types/interfaces';
-import { AuthService, LoggerService, UserService } from '#/services';
 import { UserEntity } from '#/modules/user';
 import {
     ConfirmationTokenDTO,
@@ -37,9 +33,9 @@ import {
     SignOutDTO,
     SignUpDTO
 } from '#/modules/auth';
+import { AuthService, LoggerService, UserService } from '#/services';
 
-describe.skip('Auth module', () => {
-    let app: INestApplication;
+describe('Auth module', () => {
     let dataSource: DataSource;
 
     // --- Logger -------------------------------------------------------------
@@ -58,6 +54,8 @@ describe.skip('Auth module', () => {
     let authService: AuthService;
 
     // --- Test --------------------
+    let runTest: ReturnType<typeof requireRunTest>;
+
     const user: IUserCreate = {
         email: 'sample1@email.com',
         username: 'username',
@@ -73,6 +71,7 @@ describe.skip('Auth module', () => {
     let sampleUser: IUserPublic;
 
     beforeAll(async () => {
+        let app: INestApplication;
         [app, specs, logger] = await init();
         // --- Configs --------------------
         const configService: ConfigService<IConfig & IConfigSpecs> =
@@ -106,6 +105,8 @@ describe.skip('Auth module', () => {
         );
         accessToken = `Bearer ${token}`;
         logger.debug(token);
+
+        runTest = requireRunTest(app, accessToken, env.frontEndOrigin);
     }, SpecsConfig.specs.getHookTimeoutMs());
     afterEach(
         async () => await truncateTable(dataSource, UserEntity),
@@ -116,36 +117,7 @@ describe.skip('Auth module', () => {
         SpecsConfig.specs.getHookTimeoutMs()
     );
 
-    const req = <T extends object>(
-        dto: T,
-        method: 'post' | 'get' | 'put',
-        url: string
-    ): request.Test =>
-        request(app.getHttpServer())
-            [method](url)
-            .set('Authorization', accessToken)
-            .set('Content-type', MimeType.ApplicationJson)
-            .set('Accepts', MimeType.ApplicationJson)
-            .set('Origin', env.frontEndOrigin)
-            .send(dto);
-
-    const runTest = async <T extends object, R extends object>(
-        method: 'post' | 'get' | 'put',
-        url: string,
-        dto: T,
-        status: HttpStatus,
-        message: string,
-        payload?: R
-    ): Promise<void> => {
-        // eslint-disable-next-line sonarjs/no-duplicate-string
-        const res: Response = await req(dto, method, url);
-        const body = res.body as ResData<R>;
-        expect(body.message).toEqual(message);
-        if (payload) expect(body.payload).toEqual(payload);
-        expect(res.status).toEqual(status);
-    };
-
-    describe('/auth/refresh GET', function () {
+    describe(Route.auth.accessRefresh + ' GET', function () {
         // --- Test --------------------
 
         beforeEach(async () => {
@@ -165,7 +137,7 @@ describe.skip('Auth module', () => {
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully refreshed token access`
         ): Promise<void> => {
-            const url = '/auth/refresh';
+            const url: string = getRoute(Route.auth, 'accessRefresh');
             return runTest('get', url, dto, status, message);
         };
 
@@ -211,7 +183,7 @@ describe.skip('Auth module', () => {
         );
     });
 
-    describe('/auth/signout POST', function () {
+    describe(Route.auth.signOut + ' POST', function () {
         // --- Test --------------------
 
         beforeEach(async () => {
@@ -231,7 +203,7 @@ describe.skip('Auth module', () => {
             status: HttpStatus = HttpStatus.CREATED,
             message = `Successfully signed out the user`
         ): Promise<void> => {
-            const url = '/auth/signout';
+            const url: string = getRoute(Route.auth, 'signOut');
             return runTest('post', url, dto, status, message);
         };
 
@@ -277,7 +249,7 @@ describe.skip('Auth module', () => {
         );
     });
 
-    describe('/auth/signin POST', function () {
+    describe(Route.auth.signIn + ' POST', function () {
         // --- Test --------------------
 
         beforeEach(async () => {
@@ -292,7 +264,7 @@ describe.skip('Auth module', () => {
             status: HttpStatus = HttpStatus.CREATED,
             message = `Successfully signed in the user`
         ): Promise<void> => {
-            const url = '/auth/signin';
+            const url: string = getRoute(Route.auth, 'signIn');
             return runTest('post', url, dto, status, message);
         };
 
@@ -381,7 +353,7 @@ describe.skip('Auth module', () => {
         );
     });
 
-    describe('/auth/reset-password PUT', function () {
+    describe(Route.auth.passwordResetting + ' PUT', function () {
         // --- Test --------------------
         let resetToken: string;
 
@@ -397,7 +369,7 @@ describe.skip('Auth module', () => {
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully set a new password`
         ): Promise<void> => {
-            const url = '/auth/reset-password';
+            const url: string = getRoute(Route.auth, 'passwordResetting');
             return runTest('put', url, dto, status, message);
         };
 
@@ -455,7 +427,7 @@ describe.skip('Auth module', () => {
         );
     });
 
-    describe('/auth/request-password-reset GET', function () {
+    describe(Route.auth.passwordResetRequest + ' GET', function () {
         beforeEach(async () => {
             const [createdUser] = await authService.signUp(user);
             sampleUser = await UserService.extractUserPublic(createdUser);
@@ -467,7 +439,7 @@ describe.skip('Auth module', () => {
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully sent a link for password resetting`
         ): Promise<void> => {
-            const url = '/auth/request-password-reset';
+            const url: string = getRoute(Route.auth, 'passwordResetRequest');
             return runTest('get', url, dto, status, message);
         };
 
@@ -513,7 +485,7 @@ describe.skip('Auth module', () => {
         );
     });
 
-    describe('/auth/email-confirm PUT', function () {
+    describe(Route.auth.emailConfirmation + ' PUT', function () {
         // --- Test --------------------
         let confirmationToken: string;
 
@@ -530,7 +502,8 @@ describe.skip('Auth module', () => {
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully confirmed the user`
         ): Promise<void> => {
-            return runTest('put', '/auth/email-confirm', dto, status, message);
+            const url: string = getRoute(Route.auth, 'emailConfirmation');
+            return runTest('put', url, dto, status, message);
         };
 
         it(
@@ -575,13 +548,14 @@ describe.skip('Auth module', () => {
         );
     });
 
-    describe('/auth/signup POST', function () {
+    describe(Route.auth.signup + ' POST', function () {
         const runSignUpTest = <T extends object>(
             dto: T,
             status: HttpStatus = HttpStatus.CREATED,
             message = `Successfully signed up a new user`
         ): Promise<void> => {
-            return runTest('post', '/auth/signup', dto, status, message);
+            const url: string = getRoute(Route.auth, 'signup');
+            return runTest('post', url, dto, status, message);
         };
 
         it(

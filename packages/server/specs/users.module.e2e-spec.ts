@@ -1,3 +1,4 @@
+import { v4 } from 'uuid';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as Jwt from 'jsonwebtoken';
@@ -5,6 +6,8 @@ import request, { Response } from 'supertest';
 import { JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
+import { IConfigSpecs, ISpecsConfig } from '#shared/specs/types';
+import { SpecsConfig } from '#shared/specs/static';
 import {
     IAccessPayload,
     IEmail,
@@ -20,12 +23,9 @@ import {
     ResData,
     TokenTypeEnum
 } from '#shared/types/interfaces';
+import { Route } from '#shared/static';
 
-import { IConfigSpecs, ISpecsConfig } from '#shared/specs/types';
-import { SpecsConfig } from '#shared/specs/static';
-import { v4 } from 'uuid';
-import { init } from './utils/init';
-import { truncateTable, waitDataSource } from './utils';
+import { requireRunTest, init, truncateTable, waitDataSource } from './utils';
 
 import { IConfig } from '#/types';
 import { IEmailConfig } from '#/types/interfaces';
@@ -55,6 +55,8 @@ describe('Users module', () => {
     let userService: UserService;
 
     // --- Test --------------------
+    let runTest: ReturnType<typeof requireRunTest>;
+
     const user1: IUserCreate = {
         email: 'sample1@email.com',
         username: 'username',
@@ -111,6 +113,8 @@ describe('Users module', () => {
         );
         accessToken = `Bearer ${token}`;
         logger.debug(token);
+
+        runTest = requireRunTest(app, accessToken, env.frontEndOrigin);
     }, SpecsConfig.specs.getHookTimeoutMs());
     beforeEach(async () => {
         const userId1: number = await userService.create(user1);
@@ -131,40 +135,12 @@ describe('Users module', () => {
         SpecsConfig.specs.getHookTimeoutMs()
     );
 
-    const req = <T extends object>(
-        dto: T,
-        method: 'get' | 'put' | 'delete',
-        url: string
-    ): request.Test =>
-        request(app.getHttpServer())
-            [method](url)
-            .set('Authorization', accessToken)
-            .set('Content-type', MimeType.ApplicationJson)
-            .set('Accepts', MimeType.ApplicationJson)
-            .send(dto);
-
-    const runTest = async <T extends object, R extends object>(
-        method: 'get' | 'put' | 'delete',
-        url: string,
-        dto: T,
-        status: HttpStatus,
-        message: string,
-        payload?: R
-    ): Promise<void> => {
-        // eslint-disable-next-line sonarjs/no-duplicate-string
-        const res: Response = await req(dto, method, url);
-        const body = res.body as ResData<R>;
-        expect(body.message).toEqual(message);
-        if (payload) expect(body.payload).toEqual(payload);
-        expect(res.statusCode).toEqual(status);
-    };
-
     it(
         'should response with status 403',
         async () => {
             const dto: UserReadDTOType = { user: { uuid: 'uuid' } };
             const res: Response = await request(app.getHttpServer())
-                .get('/users/read')
+                .get(Route.users.index)
                 .set('Content-type', MimeType.ApplicationJson)
                 .set('Accepts', MimeType.ApplicationJson)
                 .send(dto);
@@ -175,13 +151,13 @@ describe('Users module', () => {
         specs.getHookTimeoutMs()
     );
 
-    describe('/users/delete DELETE', function () {
+    describe(Route.users.index + ' DELETE', function () {
         const runDeleteTest = (
             dto: UserDeleteDTO,
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully deleted the user`
         ): Promise<void> => {
-            return runTest('delete', '/users/delete', dto, status, message);
+            return runTest('delete', Route.users.index, dto, status, message);
         };
 
         it(
@@ -206,7 +182,7 @@ describe('Users module', () => {
         );
     });
 
-    describe('/users/update PUT', function () {
+    describe(Route.users.index + ' PUT', function () {
         const runUpdateTest = <T extends object>(
             dto: UserUpdateDTO,
             payload: T | undefined,
@@ -214,7 +190,7 @@ describe('Users module', () => {
             message = `Successfully updated the user`
         ): Promise<void> => {
             // eslint-disable-next-line sonarjs/no-duplicate-string
-            const url = '/users/update';
+            const url = Route.users.index;
             return runTest('put', url, dto, status, message, payload);
         };
 
@@ -339,7 +315,7 @@ describe('Users module', () => {
         );
     });
 
-    describe('/users/read GET', function () {
+    describe(Route.users.index + ' GET', function () {
         const runReadTest = <T extends object>(
             dto: UserReadDTOType,
             payload: T[] | undefined,
@@ -347,7 +323,7 @@ describe('Users module', () => {
             message = `Successfully read the users`
         ): Promise<void> => {
             // eslint-disable-next-line sonarjs/no-duplicate-string
-            const url = '/users/read';
+            const url = Route.users.index;
             return runTest('get', url, dto, status, message, payload);
         };
 
