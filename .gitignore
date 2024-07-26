@@ -5,6 +5,7 @@
 
 # Env
 **/.env*
+**/keys
 
 # Tests
 **/coverage
