@@ -3,7 +3,7 @@ import { ApiBodyOptions } from '@nestjs/swagger/dist/decorators/api-body.decorat
 
 import { IUserDTO } from '#shared/types/interfaces';
 import { EmailDTO, RangeDTO, UsernameDTO, UuidDTO } from '#/modules/base';
-import { createUserDTO } from '#/utils/getModuleDTO.util';
+import { createUserDTO } from '#/utils/dto.util';
 
 type UserReadDTOType = IUserDTO<UsernameDTO | UuidDTO | EmailDTO | RangeDTO>;
 const UserReadSchema: ApiBodyOptions = {

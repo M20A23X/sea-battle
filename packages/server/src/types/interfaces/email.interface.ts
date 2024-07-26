@@ -9,6 +9,6 @@ interface IEmailConfig {
     credentials: IEmailCredentials;
 }
 
-type IEmailConfigDefault = Omit<IEmailConfig, 'credentials'>;
+type IEmailDefault = Omit<IEmailConfig, 'credentials'>;
 
-export { IEmailCredentials, IEmailConfig, IEmailConfigDefault };
+export { IEmailCredentials, IEmailConfig, IEmailDefault };

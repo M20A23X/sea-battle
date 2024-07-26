@@ -1,6 +1,6 @@
 import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
 
-type DatasourceConfigDefault = Required<
+type DatasourceDefault = Required<
     Pick<
         MysqlConnectionOptions,
         'type' | 'host' | 'port' | 'database' | 'synchronize'
@@ -13,9 +13,8 @@ interface IDatabaseConfig {
     passwordSecret: string;
 }
 
-interface IDatabaseConfigDefault
-    extends Pick<IDatabaseConfig, 'limitFallback'> {
-    datasource: DatasourceConfigDefault;
+interface IDatabaseDefault extends Pick<IDatabaseConfig, 'limitFallback'> {
+    datasource: DatasourceDefault;
 }
 
-export { IDatabaseConfig, IDatabaseConfigDefault };
+export { IDatabaseConfig, IDatabaseDefault };

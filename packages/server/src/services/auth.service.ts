@@ -44,15 +44,21 @@ import { UserRepository } from '#/repositories';
 
 interface IAuthService {
     signUp(data: IUserCreate, domain?: string): Promise<[IUser, string]>;
+
     sendResetPasswordToken(email: string, domain?: string): Promise<string>;
+
     resetPassword(
         password: string,
         passwordConfirm: string,
         token: string
     ): Promise<void>;
+
     signIn(data: IAuthCredentials, domain?: string): Promise<IAuthResult>;
+
     refreshTokenAccess(refreshToken: string): Promise<ISession>;
+
     signOut(refreshToken: string): Promise<void>;
+
     get getCacheManager(): Cache;
 }
 
@@ -76,12 +82,11 @@ class AuthService implements IAuthService {
         private readonly _cacheManager: Cache,
         @Inject(JwtService)
         private readonly _jwtService: JwtService,
-
         @Inject(forwardRef(() => MailerService))
         private readonly _mailerService: MailerService,
         @Inject(forwardRef(() => UserService))
-        private readonly _userService: UserService,
-        @Inject(forwardRef(() => UserRepository))
+        private readonly _userService,
+        @Inject(UserRepository)
         private readonly _userRepository: UserRepository
     ) {
         this._logger.log('Initializing an Auth service...');

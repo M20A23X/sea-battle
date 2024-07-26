@@ -9,7 +9,7 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { IEnvConfig, IUser, NodeEnv } from '#shared/types/interfaces';
 
 import { IConfig, ITemplatedData, ITemplates, PublicTemplates } from '#/types';
-import { IAssetsConfig, IEmailConfig } from '#/types/interfaces';
+import { IEmailConfig, IAssetsConfig } from '#/types/interfaces';
 
 import { LoggerService } from '#/services';
 

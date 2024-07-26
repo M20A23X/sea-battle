@@ -16,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 
 import { IAuthResult, ISession, MimeType, Res } from '#shared/types/interfaces';
+import { Route } from '#shared/static';
 
 import { AuthGuard } from '#/guards';
 
@@ -39,7 +40,7 @@ interface IAuthController {
     postSignOut(body: SignOutDTO): Res;
 }
 
-@Controller('/auth')
+@Controller(Route.auth.index)
 class AuthController implements IAuthController {
     // --- Constructor -------------------------------------------------------------
     constructor(
@@ -51,7 +52,7 @@ class AuthController implements IAuthController {
     // --- Instance --------------------
 
     //--- POST /signup -----------
-    @Post('/signup')
+    @Post(Route.auth.signup)
     @ApiBody({ type: [SignUpDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -65,7 +66,7 @@ class AuthController implements IAuthController {
     }
 
     //--- Put /confirm -----------
-    @Put('/email-confirm')
+    @Put(Route.auth.emailConfirmation)
     @ApiBody({ type: [ConfirmationTokenDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -76,7 +77,7 @@ class AuthController implements IAuthController {
     }
 
     //--- GET /reset -----------
-    @Get('/request-password-reset')
+    @Get(Route.auth.passwordResetRequest)
     @ApiBody({ type: [RequestPasswordResetDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -91,7 +92,7 @@ class AuthController implements IAuthController {
         };
     }
     //--- PUT /reset -----------
-    @Put('/reset-password')
+    @Put(Route.auth.passwordResetting)
     @ApiBody({ type: [ResetPasswordDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -106,7 +107,7 @@ class AuthController implements IAuthController {
     }
 
     //--- POST /signin -----------
-    @Post('/signin')
+    @Post(Route.auth.signIn)
     @ApiBody({ type: [SignInDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -123,7 +124,7 @@ class AuthController implements IAuthController {
     }
 
     //--- GET /refresh -----------
-    @Get('/refresh')
+    @Get(Route.auth.accessRefresh)
     @ApiBody({ type: [RefreshTokenAccessDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -141,7 +142,7 @@ class AuthController implements IAuthController {
     }
 
     //--- GET /signout -----------
-    @Post('/signout')
+    @Post(Route.auth.signOut)
     @UseGuards(AuthGuard)
     @ApiBody({ type: [SignOutDTO] })
     @ApiConsumes(MimeType.ApplicationJson)

@@ -5,11 +5,11 @@ import {
     HttpException,
     HttpStatus
 } from '@nestjs/common';
-
 import { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { Response } from 'express';
-import { ResData } from 'shared/dist/src/types/interfaces';
-import { LoggerService } from 'services/logger.service';
+
+import { ResData } from '#shared/types/interfaces';
+import { LoggerService } from 'services';
 
 @Catch()
 class ExceptionFilter implements IExceptionFilter {

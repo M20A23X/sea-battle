@@ -24,6 +24,8 @@ import {
     MimeType,
     Res
 } from '#shared/types/interfaces';
+import { Route } from '#shared/static';
+
 import {
     UserDeleteDTO,
     UserReadDTOType,
@@ -39,7 +41,7 @@ interface IUserController {
     delete(body: UserDeleteDTO): Res;
 }
 
-@Controller('/users')
+@Controller(Route.users.index)
 @UseGuards(AuthGuard)
 class UserController implements IUserController {
     // --- Constructor -------------------------------------------------------------
@@ -52,7 +54,7 @@ class UserController implements IUserController {
     // --- Instance --------------------
 
     //--- GET /read -----------
-    @Get('/read')
+    @Get()
     @ApiBody(UserReadSchema)
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -92,7 +94,7 @@ class UserController implements IUserController {
     }
 
     //--- PUT /update -----------
-    @Put('/update')
+    @Put()
     @ApiBody({ type: [UserUpdateDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
@@ -103,7 +105,7 @@ class UserController implements IUserController {
     }
 
     //--- DELETE /delete -----------
-    @Delete('/delete')
+    @Delete()
     @ApiBody({ type: [UserDeleteDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)

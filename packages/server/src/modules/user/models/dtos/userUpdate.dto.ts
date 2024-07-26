@@ -8,7 +8,7 @@ import {
     UsernameDTO,
     UuidDTO
 } from '#/modules/base';
-import { createUserDTO } from '#/utils/getModuleDTO.util';
+import { createUserDTO } from '#/utils/dto.util';
 
 class Data
     extends IntersectionType(

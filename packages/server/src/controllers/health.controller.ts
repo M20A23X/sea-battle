@@ -23,9 +23,11 @@ import {
     MimeType,
     Res
 } from '#shared/types/interfaces';
+import { Route } from '#shared/static';
+
 import { IConfig } from '#/types';
 
-@Controller('/health')
+@Controller(Route.health.index)
 class HealthController implements IHealthController {
     // --- Configs -------------------------------------------------------------
     private readonly _health: IHealthConfig;
@@ -60,7 +62,7 @@ class HealthController implements IHealthController {
     // --- Instance --------------------
 
     //--- Get /check -----------
-    @Get('/check')
+    @Get(Route.health.status)
     @ApiOperation({ summary: 'Check' })
     @ApiProduces(MimeType.ApplicationJson)
     async get(): Res<string> {
@@ -68,7 +70,7 @@ class HealthController implements IHealthController {
     }
 
     //--- Get / -----------
-    @Get('/')
+    @Get()
     @ApiOperation({ summary: 'Check CDN health' })
     @ApiProduces(MimeType.ApplicationJson)
     @HealthCheck()

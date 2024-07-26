@@ -1,2 +1,2 @@
 export * from './date.util';
-export * from './getModuleDTO.util';
+export * from './dto.util';
