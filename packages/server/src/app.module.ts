@@ -3,9 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
+
 import { NodeEnv } from '#shared/types/interfaces';
+
 import {
-    AssetsConfig,
+    PublicConfig,
     AuthConfig,
     DatabaseConfig,
     EmailConfig,
@@ -17,7 +19,13 @@ import { AuthGuard } from '#/guards';
 import { ExceptionFilter } from '#/filters';
 import { LogRequestMiddleware } from '#/middleware';
 
-import { AuthModule, HealthModule, MailerModule, UserModule } from '#/modules';
+import {
+    AuthModule,
+    HealthModule,
+    ResourceModule,
+    MailerModule,
+    UserModule
+} from '#/modules';
 import { LoggerService } from '#/services';
 
 @Module({
@@ -32,14 +40,19 @@ import { LoggerService } from '#/services';
                 EmailConfig,
                 EnvConfig,
                 HealthConfig,
-                AssetsConfig,
+                PublicConfig,
                 ValidationConfig
             ],
             envFilePath:
-                EnvConfig().env.state === NodeEnv.Testing ? '.env.test' : '.env'
+                EnvConfig().env.state === NodeEnv.Testing
+                    ? '.env.test'
+                    : EnvConfig().env.state === NodeEnv.Production
+                    ? '.env.prod'
+                    : '.env'
         }),
         HealthModule,
         MailerModule,
+        ResourceModule,
         UserModule,
         AuthModule
     ],

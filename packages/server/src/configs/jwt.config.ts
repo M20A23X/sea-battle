@@ -2,17 +2,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as process from 'process';
 
-import { IConfigBase } from '#shared/types/config';
 import { IKeyPath, TokenTypeEnum } from '#shared/types/interfaces';
+import { EnvException } from '#shared/exceptions';
 import { getEnvFloat, getEnvString } from '#shared/utils';
 
-import { EnvException } from '#shared/exceptions';
+import { IConfig } from '#/types';
 import { Config } from '#/static';
 
 const readKeyFile = (filePath: string) =>
     fs.readFileSync(path.join(process.cwd(), '..', '..', filePath), 'utf-8');
 
-export default (): Pick<IConfigBase, 'jwt'> => {
+export default (): Pick<IConfig, 'jwt'> => {
     const keyPath: IKeyPath['keyPath'] = {
         public: getEnvString('JWT_PUBLIC_KEY_PATH', Config.jwt.keyPath.public),
         private: getEnvString(
@@ -21,7 +21,7 @@ export default (): Pick<IConfigBase, 'jwt'> => {
         )
     };
 
-    const config: Pick<IConfigBase, 'jwt'> = {
+    const config: Pick<IConfig, 'jwt'> = {
         jwt: {
             tokens: {
                 access: {
@@ -62,7 +62,7 @@ export default (): Pick<IConfigBase, 'jwt'> => {
     if (!config.jwt.tokens[TokenTypeEnum.RESET_PASSWORD].secret)
         throw new EnvException(`The JWT reset password secret isn't set`);
     if (!config.jwt.tokens[TokenTypeEnum.REFRESH].secret)
-        throw new EnvException(`The refresh secret isn't set`);
+        throw new EnvException(`The JWT refresh secret isn't set`);
 
     return config;
 };

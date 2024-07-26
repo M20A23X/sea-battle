@@ -1,4 +1,10 @@
-import { Controller, Get, InternalServerErrorException } from '@nestjs/common';
+import path from 'path';
+import {
+    Controller,
+    Get,
+    HttpStatus,
+    InternalServerErrorException
+} from '@nestjs/common';
 import { ApiOperation, ApiProduces } from '@nestjs/swagger';
 import {
     DiskHealthIndicator,
@@ -17,8 +23,7 @@ import {
     MimeType,
     Res
 } from '#shared/types/interfaces';
-import { IConfigBase } from '#shared/types/config';
-import { checkHealth } from '#shared/utils';
+import { IConfig } from '#/types';
 
 @Controller('/health')
 class HealthController implements IHealthController {
@@ -34,9 +39,7 @@ class HealthController implements IHealthController {
 
     // --- Constructor -------------------------------------------------------------
     constructor(
-        private readonly _configService: ConfigService<
-            Pick<IConfigBase, 'health' | 'env'>
-        >,
+        private readonly _configService: ConfigService<IConfig>,
         private readonly _healthCheck: HealthCheckService,
         private readonly _httpIndicator: HttpHealthIndicator,
         private readonly _diskIndicator: DiskHealthIndicator,
@@ -71,11 +74,37 @@ class HealthController implements IHealthController {
     @HealthCheck()
     async getCheckHealth(): Res<HealthCheckResult> {
         try {
-            const healthRes: HealthCheckResult = await checkHealth(
-                this._services,
-                this._env.port,
-                this._health
-            );
+            const healthRes: HealthCheckResult = await this._healthCheck.check([
+                () =>
+                    this._httpIndicator.pingCheck(
+                        'ping',
+                        `http://127.0.0.1:${this._env.port}/health/check`
+                    ),
+                () =>
+                    this._httpIndicator.responseCheck(
+                        'response',
+                        `http://127.0.0.1:${this._env.port}/health/check`,
+                        (response) =>
+                            [HttpStatus.OK, HttpStatus.CREATED].includes(
+                                response.status
+                            )
+                    ),
+                () =>
+                    this._diskIndicator.checkStorage('storage', {
+                        path: path.parse(process.cwd()).root,
+                        thresholdPercent: this._health.diskThreshold
+                    }),
+                () =>
+                    this._memoryIndicator.checkRSS(
+                        'memory RSS',
+                        this._health.memRSSThreshold
+                    ),
+                () =>
+                    this._memoryIndicator.checkHeap(
+                        'memory Heap',
+                        this._health.memHeapThreshold
+                    )
+            ]);
             return {
                 message: 'Successfully got the health status',
                 payload: healthRes

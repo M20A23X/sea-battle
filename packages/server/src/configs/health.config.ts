@@ -1,24 +1,24 @@
-import { IConfigBase } from '#shared/types/config';
-import { ConfigBasic } from '#shared/static';
 import { getEnvFloat } from '#shared/utils';
+import { IConfig } from '#/types';
+import { Config } from '#/static';
 
-export default (): Pick<IConfigBase, 'health'> => ({
+export default (): Pick<IConfig, 'health'> => ({
     health: {
         databaseCheckTimeout: getEnvFloat(
             'DATABASE_CHECK_TIMEOUT',
-            ConfigBasic.health.databaseCheckTimeout
+            Config.health.databaseCheckTimeout
         ),
         diskThreshold: getEnvFloat(
             'DISK_THRESHOLD',
-            ConfigBasic.health.diskThreshold
+            Config.health.diskThreshold
         ),
         memHeapThreshold: getEnvFloat(
             'MEM_HEAP_THRESHOLD',
-            ConfigBasic.health.memHeapThreshold
+            Config.health.memHeapThreshold
         ),
         memRSSThreshold: getEnvFloat(
             'MEM_RSS_THRESHOLD',
-            ConfigBasic.health.memRSSThreshold
+            Config.health.memRSSThreshold
         )
     }
 });

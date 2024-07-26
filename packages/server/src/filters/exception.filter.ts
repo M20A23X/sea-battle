@@ -1,11 +1,14 @@
 import {
     ArgumentsHost,
     Catch,
-    ExceptionFilter as IExceptionFilter
+    ExceptionFilter as IExceptionFilter,
+    HttpException,
+    HttpStatus
 } from '@nestjs/common';
 
-import { handleException } from '#shared/utils';
-
+import { HttpArgumentsHost } from '@nestjs/common/interfaces';
+import { Response } from 'express';
+import { ResData } from 'shared/dist/src/types/interfaces';
 import { LoggerService } from 'services/logger.service';
 
 @Catch()
@@ -19,7 +22,16 @@ class ExceptionFilter implements IExceptionFilter {
     // --- Instance --------------------
     //--- catch -----------
     public catch(exception: Error, host: ArgumentsHost): object {
-        return handleException(exception, host, this._logger);
+        const ctx: HttpArgumentsHost = host.switchToHttp();
+        const res: Response = ctx.getResponse<Response>();
+
+        let status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+        if (exception instanceof HttpException) status = exception.getStatus();
+
+        this._logger.error(exception.stack);
+
+        const json: ResData = { message: 'Error: ' + exception.message };
+        return res.status(status).json(json);
     }
 }
 

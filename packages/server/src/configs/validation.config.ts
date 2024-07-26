@@ -1,12 +1,12 @@
-import { IConfigBase } from '#shared/types/config';
 import { NodeEnv } from '#shared/types/interfaces';
 import { getEnvBool } from '#shared/utils';
 
+import { IConfig } from '#/types';
 import { Config } from '#/static';
 import { EnvConfig } from '#/configs';
 
-export default (): Pick<IConfigBase, 'dtoValidation'> => ({
-    dtoValidation: {
+export default (): Pick<IConfig, 'validation'> => ({
+    validation: {
         validation: {
             transform: getEnvBool(
                 'VALIDATION_TRANSFORM',

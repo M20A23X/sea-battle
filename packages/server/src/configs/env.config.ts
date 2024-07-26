@@ -1,12 +1,12 @@
-import { IConfigBase } from '#shared/types/config';
 import { NodeEnv } from '#shared/types/interfaces';
 import { EnvException } from '#shared/exceptions';
 import { getEnvFloat, getEnvString } from '#shared/utils';
 
+import { IConfig } from '#/types';
 import { Config } from '#/static';
 
-export default (): Pick<IConfigBase, 'env'> => {
-    const config: Pick<IConfigBase, 'env'> = {
+export default (): Pick<IConfig, 'env'> => {
+    const config: Pick<IConfig, 'env'> = {
         env: {
             appId: getEnvString('APP_ID'),
             appName: getEnvString('APP_NAME'),

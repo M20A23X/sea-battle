@@ -43,11 +43,11 @@ export default (): Pick<IConfig, 'database'> => {
     };
 
     if (!config.database.datasource.username)
-        throw new EnvException(`The username isn't set`);
+        throw new EnvException(`The database username isn't set`);
     if (!config.database.datasource.password)
-        throw new EnvException(`The password isn't set`);
+        throw new EnvException(`The database password isn't set`);
     if (!config.database.passwordSecret)
-        throw new EnvException(`The password salt isn't set`);
+        throw new EnvException(`The database password secret isn't set`);
 
     return config;
 };

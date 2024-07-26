@@ -1,7 +1,28 @@
-import { IDirPath, IPublicConfigBase } from '#shared/types/interfaces';
+import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 
-interface IAssetsConfig extends IPublicConfigBase {
-    templates: IDirPath;
+interface IStaticAssets {
+    fileMaxSizeB: number;
+    allowedExtensions: string[];
+}
+interface IDir {
+    dir: string;
 }
 
-export { IAssetsConfig };
+interface IFolder extends IDir {
+    path: string;
+}
+
+interface IAssetsConfig {
+    public: IFolder;
+    templates: IFolder;
+    assets: IFolder & IStaticAssets;
+    multer: MulterOptions;
+}
+
+type IPublicDefault = {
+    public: IDir;
+    templates: IDir;
+    assets: IDir & IStaticAssets;
+};
+
+export { IAssetsConfig, IPublicDefault };

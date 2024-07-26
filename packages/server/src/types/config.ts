@@ -1,25 +1,39 @@
-import { IConfigBase, IConfigDefaultBase } from '#shared/types/config';
-import { IEnvConfigDefault } from '#shared/types/interfaces';
+import {
+    IEnvConfig,
+    IEnvDefault,
+    IHealthConfig,
+    IHealthDefault,
+    IJwtConfig,
+    IJwtDefault,
+    IValidationConfig,
+    IValidationDefault
+} from '#shared/types/interfaces';
 import {
     IDatabaseConfig,
-    IDatabaseConfigDefault
-} from '#/types/interfaces/database.interface';
-import {
+    IDatabaseDefault,
     IEmailConfig,
-    IEmailConfigDefault
-} from '#/types/interfaces/email.interface';
-import { IAssetsConfig } from '#/types/interfaces';
+    IEmailDefault,
+    IAssetsConfig,
+    IPublicDefault
+} from '#/types/interfaces';
 
-interface IConfig extends IConfigBase {
+interface IConfig {
+    validation: IValidationConfig;
+    env: IEnvConfig;
+    health: IHealthConfig;
+    jwt: IJwtConfig;
     database: IDatabaseConfig;
     email: IEmailConfig;
     assets: IAssetsConfig;
 }
-
-interface IConfigDefault extends IConfigDefaultBase {
-    database: IDatabaseConfigDefault;
-    email: IEmailConfigDefault;
-    env: IEnvConfigDefault;
+interface IDefault {
+    validation: IValidationDefault;
+    env: IEnvDefault;
+    health: IHealthDefault;
+    jwt: IJwtDefault;
+    database: IDatabaseDefault;
+    email: IEmailDefault;
+    public: IPublicDefault;
 }
 
-export { IConfig, IConfigDefault };
+export { IConfig, IDefault };

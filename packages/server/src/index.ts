@@ -26,7 +26,7 @@ async function bootstrap() {
     const configService: ConfigService<IConfig> = app.get(ConfigService);
     const env: IEnvConfig = configService.getOrThrow('env');
     const validation: IValidationConfig =
-        configService.getOrThrow('dtoValidation');
+        configService.getOrThrow('validation');
 
     //--- Pipes -----------
     app.useGlobalPipes(new ValidationPipe(validation.validation));
