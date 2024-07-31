@@ -1,4 +1,0 @@
-FROM mysql:8.0
-ARG DATABASE_PORT
-COPY ./database/global.sql /docker-entrypoint-initdb.d/
-EXPOSE $DATABASE_PORT
