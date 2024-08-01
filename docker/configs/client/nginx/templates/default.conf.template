@@ -1,5 +1,5 @@
 server {
-  listen ${NGINX_PORT};
+  listen ${DOCKER_NETWORK_CLIENT_PORT};
   server_name client;
   root /var/www/dist/;
   index index.html;
