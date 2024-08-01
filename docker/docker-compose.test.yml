@@ -8,7 +8,6 @@ services:
     extends:
       file: docker-compose.base.yml
       service: database
-    image: m20a20x/games:database
     container_name: database-test
 
   server:
@@ -18,8 +17,7 @@ services:
     build:
       dockerfile: docker/configs/server/Dockerfile.test
     environment:
-      NODE_ENV: test
-    image: m20a20x/games:server
+      NODE_ENV: testing
     container_name: server-test
     command: yarn test:quick server
 
@@ -30,8 +28,7 @@ services:
     build:
       dockerfile: docker/configs/client/Dockerfile.test
     environment:
-      NODE_ENV: test
-    image: m20a20x/games:client
+      NODE_ENV: testing
     container_name: client-test
     command: yarn test:quick client
 

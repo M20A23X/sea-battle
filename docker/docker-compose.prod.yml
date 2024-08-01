@@ -8,7 +8,6 @@ services:
     extends:
       file: docker-compose.base.yml
       service: database
-    image: m20a20x/games:database
     container_name: database
 
   server:
@@ -18,8 +17,7 @@ services:
     build:
       dockerfile: docker/configs/server/Dockerfile.prod
     environment:
-      NODE_ENV: prod
-    image: m20a20x/games:server
+      NODE_ENV: production
     container_name: server
     command: node dist/index.js
 
@@ -30,6 +28,5 @@ services:
     build:
       dockerfile: docker/configs/client/Dockerfile.prod
     environment:
-      NODE_ENV: prod
-    image: m20a20x/games:client
+      NODE_ENV: production
     container_name: client

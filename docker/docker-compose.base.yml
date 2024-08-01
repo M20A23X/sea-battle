@@ -3,21 +3,16 @@ services:
   database:
     build:
       context: ../
-      dockerfile: docker/configs/Dockerfile.db
+      dockerfile: docker/configs/database/Dockerfile
       args:
-        DATABASE_PORT: ${DATABASE_PORT}
+        PORT: ${DOCKER_NETWORK_DATABASE_PORT}
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+    env_file: ../.env
     ports:
-      - ${DATABASE_PORT}:${DATABASE_PORT}
-    healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
-      timeout: 3s
-      retries: 10
+      - ${DOCKER_NETWORK_DATABASE_PORT}:${DOCKER_NETWORK_DATABASE_PORT}
     networks:
       games-network:
-        ipv4_address: ${DATABASE_IP}
+        ipv4_address: ${DOCKER_NETWORK_DATABASE_IP}
     profiles:
       - full
       - backend
@@ -27,30 +22,18 @@ services:
     build:
       context: ../
       args:
-        SERVER_PORT_HTTP: ${SERVER_PORT_HTTP}
-        SERVER_PORT_WS: ${SERVER_PORT_WS}
-    environment:
-      CONNECTION_CHECK_INTERVAL_MS: ${CONNECTION_CHECK_INTERVAL_MS}
-      DATABASE_IP: ${DATABASE_IP}
-      DATABASE_NAME: ${DATABASE_NAME}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_PASSWORD_SALT: ${DATABASE_PASSWORD_SALT}
-      DATABASE_PORT: ${DATABASE_PORT}
-      DATABASE_USERNAME: ${DATABASE_USERNAME}
-      JWT_SECRET: ${JWT_SECRET}
-      SERVER_PORT_HTTP: ${SERVER_PORT_HTTP}
-      SERVER_PORT_WS: ${SERVER_PORT_WS}
-      SPECS_DATA_AMOUNT: ${SPECS_DATA_AMOUNT}
-      SPECS_HOOK_TIMEOUT_MS: ${SPECS_HOOK_TIMEOUT_MS}
+        PORT_HTTP: ${DOCKER_NETWORK_SERVER_PORT_HTTP}
+        PORT_WS: ${DOCKER_NETWORK_SERVER_PORT_WS}
+    env_file: ../.env
     ports:
-      - ${SERVER_PORT_HTTP}:${SERVER_PORT_HTTP}
-      - ${SERVER_PORT_WS}:${SERVER_PORT_WS}
+      - ${DOCKER_NETWORK_SERVER_PORT_HTTP}:${DOCKER_NETWORK_SERVER_PORT_HTTP}
+      - ${DOCKER_NETWORK_SERVER_PORT_WS}:${DOCKER_NETWORK_SERVER_PORT_WS}
     depends_on:
       database:
         condition: service_healthy
     networks:
       games-network:
-        ipv4_address: ${SERVER_IP}
+        ipv4_address: ${DOCKER_NETWORK_SERVER_IP}
     profiles:
       - full
       - backend
@@ -59,18 +42,13 @@ services:
     build:
       context: ../
       args:
-        NGINX_PORT: ${NGINX_PORT}
-    environment:
-      NGINX_PORT: ${NGINX_PORT}
-      SERVER_PORT_WS: ${SERVER_PORT_WS}
-      SERVER_IP: ${SERVER_IP}
-      SERVER_HOST_HTTP: ${SERVER_HOST_HTTP}
-      SERVER_HOST_WS: ${SERVER_HOST_WS}
+        PORT: ${DOCKER_NETWORK_CLIENT_PORT}
+    env_file: ../.env
     ports:
-      - ${NGINX_PORT}:${NGINX_PORT}
+      - ${DOCKER_NETWORK_CLIENT_PORT}:${DOCKER_NETWORK_CLIENT_PORT}
     networks:
       games-network:
-        ipv4_address: ${CLIENT_IP}
+        ipv4_address: ${DOCKER_NETWORK_CLIENT_IP}
     profiles:
       - full
       - client
