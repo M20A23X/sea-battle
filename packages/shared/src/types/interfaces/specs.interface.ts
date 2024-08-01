@@ -1,6 +1,5 @@
 interface ISpecsConfig {
     getHookTimeoutMs: () => number;
-    connectionCheckIntervalMs: number;
 }
 
 type ISpecsDefault = Required<ISpecsConfig>;

@@ -5,9 +5,9 @@ import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { JwtSignOptions } from '@nestjs/jwt';
 
-import { IConfigSpecs, ISpecsConfig } from '#shared/specs/types';
-import { SpecsConfig } from '#shared/specs/static';
 import {
+    IConfigSpecs,
+    ISpecsConfig,
     IAccessPayload,
     IAuthResult,
     IEnvConfig,
@@ -16,10 +16,10 @@ import {
     IUserPublic,
     TokenTypeEnum
 } from '#shared/types/interfaces';
-import { Format, Route } from '#shared/static';
+import { SpecsConfig, Format, Route } from '#shared/static';
 
 import { getRoute } from 'shared/src/utils';
-import { init, requireRunTest, truncateTable, waitDataSource } from './utils';
+import { init, requireRunTest, truncateTable } from './utils';
 
 import { IConfig } from '#/types';
 import { IEmailConfig } from '#/types/interfaces';
@@ -72,7 +72,7 @@ describe('Auth module', () => {
 
     beforeAll(async () => {
         let app: INestApplication;
-        [app, specs, logger] = await init();
+        [app, specs, logger, dataSource] = await init();
         // --- Configs --------------------
         const configService: ConfigService<IConfig & IConfigSpecs> =
             app.get(ConfigService);
@@ -80,10 +80,6 @@ describe('Auth module', () => {
         env = configService.getOrThrow('env');
         const jwt: IJwtConfig = configService.getOrThrow('jwt');
         const email: IEmailConfig = configService.getOrThrow('email');
-
-        // --- Datasource --------------------
-        dataSource = app.get<DataSource>(DataSource);
-        await waitDataSource(dataSource, specs.connectionCheckIntervalMs);
 
         // --- Services --------------------
         userService = app.get<UserService>(UserService);

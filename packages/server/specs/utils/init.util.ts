@@ -4,19 +4,26 @@ import { JwtModule } from '@nestjs/jwt';
 import { INestApplication, LogLevel, ModuleMetadata } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
+import { DataSource } from 'typeorm';
 import bodyParser from 'body-parser';
 
-import { IConfigSpecs, ISpecsConfig } from '#shared/specs/types';
-import { IValidationConfig, NodeEnv } from '#shared/types/interfaces';
+import {
+    IConfigSpecs,
+    ISpecsConfig,
+    IHealthConfig,
+    IValidationConfig,
+    NodeEnv
+} from '#shared/types/interfaces';
 
 import { SpecsConfig } from '../configs';
+import { waitDataSource } from './';
 
 import { IConfig } from '#/types';
 import {
     AuthConfig,
     DatabaseConfig,
     EmailConfig,
-    EnvConfig,
+    GeneralConfig,
     HealthConfig,
     PublicConfig,
     ValidationConfig
@@ -35,7 +42,7 @@ import {
 } from '#/modules';
 import { LoggerService } from '#/services';
 
-type Init = [INestApplication, ISpecsConfig, LoggerService];
+type Init = [INestApplication, ISpecsConfig, LoggerService, DataSource];
 
 export const init = async (): Promise<Init> => {
     const metadata: ModuleMetadata = {
@@ -49,16 +56,16 @@ export const init = async (): Promise<Init> => {
                     AuthConfig,
                     DatabaseConfig,
                     EmailConfig,
-                    EnvConfig,
+                    GeneralConfig,
                     HealthConfig,
                     PublicConfig,
                     ValidationConfig
                 ],
                 envFilePath:
-                    EnvConfig().env.state === NodeEnv.Testing
+                    GeneralConfig().env.state === NodeEnv.Testing
                         ? '.env.test'
-                        : EnvConfig().env.state === NodeEnv.Production
-                        ? '.env.prod'
+                        : GeneralConfig().env.state === NodeEnv.Development
+                        ? '.env.dev'
                         : '.env'
             }),
             HealthModule,
@@ -86,6 +93,7 @@ export const init = async (): Promise<Init> => {
     const specs = configService.getOrThrow('specs');
     const validation: IValidationConfig =
         configService.getOrThrow('validation');
+    const health: IHealthConfig = configService.getOrThrow('health');
 
     //--- Pipes -----------
     app.useGlobalPipes(new ValidationPipe(validation.validation));
@@ -96,11 +104,15 @@ export const init = async (): Promise<Init> => {
 
     //--- Logger -----------
     const logger: LoggerService = new LoggerService('SPECS');
-    const logLevels: LogLevel[] = ['log', 'error', 'warn', 'debug', 'verbose'];
+    const logLevels: LogLevel[] = ['log', 'error', 'warn', 'verbose'];
     logger.setLogLevels(logLevels);
     app.useLogger(logger);
 
+    // --- Datasource --------------------
+    const dataSource: DataSource = app.get<DataSource>(DataSource);
+    await waitDataSource(dataSource, health.databaseConnectionCheckTimeoutMs);
+
     await app.init();
 
-    return [app, specs, logger];
+    return [app, specs, logger, dataSource];
 };

@@ -3,9 +3,8 @@ import { INestApplication, ValidationError } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
-import { ISpecsConfig } from '#shared/specs/types';
-import { SpecsConfig } from '#shared/specs/static';
-import { Format } from '#shared/static';
+import { ISpecsConfig } from '#shared/types/interfaces';
+import { Format, SpecsConfig } from '#shared/static';
 
 import { init } from './utils';
 

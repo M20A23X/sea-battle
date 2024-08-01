@@ -6,9 +6,9 @@ import request, { Response } from 'supertest';
 import { JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
-import { IConfigSpecs, ISpecsConfig } from '#shared/specs/types';
-import { SpecsConfig } from '#shared/specs/static';
 import {
+    IConfigSpecs,
+    ISpecsConfig,
     IAccessPayload,
     IEmail,
     IEnvConfig,
@@ -23,9 +23,9 @@ import {
     ResData,
     TokenTypeEnum
 } from '#shared/types/interfaces';
-import { Route } from '#shared/static';
+import { SpecsConfig, Route } from '#shared/static';
 
-import { requireRunTest, init, truncateTable, waitDataSource } from './utils';
+import { init, requireRunTest, truncateTable } from './utils';
 
 import { IConfig } from '#/types';
 import { IEmailConfig } from '#/types/interfaces';
@@ -81,7 +81,7 @@ describe('Users module', () => {
     let sampleUser2: IUserPublic;
 
     beforeAll(async () => {
-        [app, specs, logger] = await init();
+        [app, specs, logger, dataSource] = await init();
         // --- Configs --------------------
         const configService: ConfigService<IConfig & IConfigSpecs> =
             app.get(ConfigService);
@@ -89,10 +89,6 @@ describe('Users module', () => {
         const jwt: IJwtConfig = configService.getOrThrow('jwt');
         const email: IEmailConfig = configService.getOrThrow('email');
         const env: IEnvConfig = configService.getOrThrow('env');
-
-        // --- Datasource --------------------
-        dataSource = app.get<DataSource>(DataSource);
-        await waitDataSource(dataSource, specs.connectionCheckIntervalMs);
 
         // --- Services --------------------
         userService = app.get<UserService>(UserService);
