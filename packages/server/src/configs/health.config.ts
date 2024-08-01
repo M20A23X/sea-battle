@@ -4,21 +4,21 @@ import { Config } from '#/static';
 
 export default (): Pick<IConfig, 'health'> => ({
     health: {
-        databaseCheckTimeout: getEnvFloat(
-            'DATABASE_CHECK_TIMEOUT',
-            Config.health.databaseCheckTimeout
+        databaseConnectionCheckTimeoutMs: getEnvFloat(
+            'DATABASE_CONNECTION_CHECK_TIMEOUT_MS',
+            Config.health.databaseConnectionCheckTimeoutMs
         ),
-        diskThreshold: getEnvFloat(
-            'DISK_THRESHOLD',
-            Config.health.diskThreshold
+        diskThresholdPercent: getEnvFloat(
+            'SERVER_HEALTH_DISK_THRESHOLD_PERCENT',
+            Config.health.diskThresholdPercent
         ),
-        memHeapThreshold: getEnvFloat(
-            'MEM_HEAP_THRESHOLD',
-            Config.health.memHeapThreshold
+        memHeapThresholdB: getEnvFloat(
+            'SERVER_HEALTH_MEM_HEAP_THRESHOLD_B',
+            Config.health.memHeapThresholdB
         ),
-        memRSSThreshold: getEnvFloat(
-            'MEM_RSS_THRESHOLD',
-            Config.health.memRSSThreshold
+        memRSSThresholdB: getEnvFloat(
+            'SERVER_HEALTH_MEM_RSS_THRESHOLD_B',
+            Config.health.memRSSThresholdB
         )
     }
 });

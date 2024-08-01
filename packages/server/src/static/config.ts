@@ -6,7 +6,7 @@ const Config: IDefault = {
     email: {
         host: 'sandbox.smtp.mailtrap.io',
         port: 587,
-        secure: false
+        secure: true
     },
     public: {
         public: { dir: 'public' },
@@ -15,6 +15,10 @@ const Config: IDefault = {
             dir: 'assets',
             allowedExtensions: ['png'],
             fileMaxSizeB: 5 * 1024 ** 2
+        },
+        multer: {
+            files: 1,
+            fields: 1
         }
     },
     database: {
@@ -29,7 +33,7 @@ const Config: IDefault = {
     },
     env: {
         port: 5000,
-        portWs: 5002,
+        portWs: 5001,
         appName: 'App',
         state: NodeEnv.Development,
         frontEndOrigin: 'http://localhost:3000'
@@ -40,17 +44,13 @@ const Config: IDefault = {
             confirmation: { timeMs: 3_600_000 },
             resetPassword: { timeMs: 1_800_000 },
             refresh: { timeMs: 7_776_000_000 }
-        },
-        keyPath: {
-            private: 'keys/jwtRS256.key',
-            public: 'keys/jwtRS256.key.pub'
         }
     },
     health: {
-        databaseCheckTimeout: 300,
-        diskThreshold: 0.85,
-        memHeapThreshold: 1024 ** 3,
-        memRSSThreshold: 1024 ** 3
+        databaseConnectionCheckTimeoutMs: 300,
+        diskThresholdPercent: 0.85,
+        memHeapThresholdB: 1024 ** 3,
+        memRSSThresholdB: 1024 ** 3
     },
     validation: {
         validation: {

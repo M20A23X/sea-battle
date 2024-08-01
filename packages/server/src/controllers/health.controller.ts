@@ -94,17 +94,17 @@ class HealthController implements IHealthController {
                 () =>
                     this._diskIndicator.checkStorage('storage', {
                         path: path.parse(process.cwd()).root,
-                        thresholdPercent: this._health.diskThreshold
+                        thresholdPercent: this._health.diskThresholdPercent
                     }),
                 () =>
                     this._memoryIndicator.checkRSS(
                         'memory RSS',
-                        this._health.memRSSThreshold
+                        this._health.memRSSThresholdB
                     ),
                 () =>
                     this._memoryIndicator.checkHeap(
                         'memory Heap',
-                        this._health.memHeapThreshold
+                        this._health.memHeapThresholdB
                     )
             ]);
             return {

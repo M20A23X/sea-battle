@@ -36,7 +36,9 @@ async function bootstrap() {
     const logLevels: LogLevel[] =
         env.state === NodeEnv.Production
             ? ['log', 'error', 'warn']
-            : ['log', 'error', 'warn', 'debug', 'verbose'];
+            : env.state === NodeEnv.Development
+            ? ['log', 'error', 'warn', 'debug', 'verbose']
+            : ['log', 'error', 'warn', 'verbose'];
     logger.setLogLevels(logLevels);
     app.useLogger(logger);
 

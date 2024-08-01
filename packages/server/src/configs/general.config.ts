@@ -10,10 +10,10 @@ export default (): Pick<IConfig, 'env'> => {
         env: {
             appId: getEnvString('APP_ID'),
             appName: getEnvString('APP_NAME'),
-            port: getEnvFloat('APP_PORT', Config.env.port),
-            portWs: getEnvFloat('APP_PORT_WS', Config.env.portWs),
+            port: getEnvFloat('SERVER_PORT_HTTP', Config.env.port),
+            portWs: getEnvFloat('SERVER_PORT_WS', Config.env.portWs),
             frontEndOrigin: getEnvString(
-                'FE_ORIGIN',
+                'CLIENT_ORIGIN',
                 Config.env.frontEndOrigin
             ),
             state: getEnvString('NODE_ENV', Config.env.state) as NodeEnv

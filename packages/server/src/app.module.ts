@@ -11,7 +11,7 @@ import {
     AuthConfig,
     DatabaseConfig,
     EmailConfig,
-    EnvConfig,
+    GeneralConfig,
     HealthConfig,
     ValidationConfig
 } from '#/configs';
@@ -38,16 +38,16 @@ import { LoggerService } from '#/services';
                 AuthConfig,
                 DatabaseConfig,
                 EmailConfig,
-                EnvConfig,
+                GeneralConfig,
                 HealthConfig,
                 PublicConfig,
                 ValidationConfig
             ],
             envFilePath:
-                EnvConfig().env.state === NodeEnv.Testing
+                GeneralConfig().env.state === NodeEnv.Testing
                     ? '.env.test'
-                    : EnvConfig().env.state === NodeEnv.Production
-                    ? '.env.prod'
+                    : GeneralConfig().env.state === NodeEnv.Development
+                    ? '.env.dev'
                     : '.env'
         }),
         HealthModule,

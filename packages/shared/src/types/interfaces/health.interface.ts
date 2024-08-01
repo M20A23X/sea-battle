@@ -1,8 +1,8 @@
 interface IHealthConfig {
-    databaseCheckTimeout: number;
-    diskThreshold: number;
-    memHeapThreshold: number;
-    memRSSThreshold: number;
+    databaseConnectionCheckTimeoutMs: number;
+    diskThresholdPercent: number;
+    memHeapThresholdB: number;
+    memRSSThresholdB: number;
 }
 type IHealthDefault = IHealthConfig;
 

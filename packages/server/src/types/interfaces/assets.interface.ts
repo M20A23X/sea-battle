@@ -23,6 +23,10 @@ type IPublicDefault = {
     public: IDir;
     templates: IDir;
     assets: IDir & IStaticAssets;
+    multer: {
+        fields: number;
+        files: number;
+    };
 };
 
 export { IAssetsConfig, IPublicDefault };

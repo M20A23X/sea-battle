@@ -7,12 +7,12 @@ export default (): Pick<IConfig, 'email'> => {
     const config: Pick<IConfig, 'email'> = {
         email: {
             credentials: {
-                username: getEnvString('EMAIL_USERNAME'),
-                password: getEnvString('EMAIL_PASSWORD')
+                username: getEnvString('SERVER_EMAIL_USERNAME'),
+                password: getEnvString('SERVER_EMAIL_PASSWORD')
             },
-            host: getEnvString('EMAIL_HOST', Config.email.host),
-            port: getEnvFloat('EMAIL_PORT', Config.email.port),
-            secure: Boolean(getEnvString('EMAIL_SECURE')) ?? Config.email.secure
+            host: getEnvString('SERVER_EMAIL_HOST', Config.email.host),
+            port: getEnvFloat('SERVER_EMAIL_PORT:', Config.email.port),
+            secure: Config.email.secure
         }
     };
 

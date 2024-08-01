@@ -4,60 +4,39 @@ import fs from 'fs';
 import { diskStorage } from 'multer';
 import express from 'express';
 import {
-    HttpStatus,
     UnprocessableEntityException,
     UnsupportedMediaTypeException
 } from '@nestjs/common';
 
-import { getEnvArray, getEnvFloat, getEnvString } from '#shared/utils';
+import { getEnvArray, getEnvFloat } from '#shared/utils';
 import { Format } from '#shared/static';
+
 import { IAssetsConfig } from '#/types/interfaces';
 import { IConfig } from '#/types';
-
 import { Config } from '#/static';
 
 export default (): Pick<IConfig, 'assets'> => {
-    const publicDir: string = getEnvString(
-        'PUBLIC_DIR',
-        Config.public.public.dir
-    );
+    const publicDir: string = Config.public.public.dir;
     const publicPath: string = path.join(process.cwd(), publicDir);
-    const templatesDir: string = getEnvString(
-        'TEMPLATES_DIR',
-        Config.public.templates.dir
-    );
-    const assetsDir: string = getEnvString(
-        'ASSETS_DIR',
-        Config.public.assets.dir
-    );
+    const templatesDir: string = Config.public.templates.dir;
+    const assetsDir: string = Config.public.assets.dir;
 
     const assets: IAssetsConfig['assets'] = {
         dir: assetsDir,
         path: path.join(publicPath, assetsDir),
         fileMaxSizeB: getEnvFloat(
-            'MAX_FILE_SIZE_B',
+            'SERVER_PUBLIC_FILE_MAX_SIZE_B',
             Config.public.assets.fileMaxSizeB
         ),
         allowedExtensions: getEnvArray(
-            'ALLOWED_EXTENSIONS',
+            'SERVER_PUBLIC_ALLOWED_EXTENSIONS',
             Config.public.assets.allowedExtensions
         )
     };
 
     return {
         assets: {
-            assets: {
-                dir: assetsDir,
-                path: path.join(publicPath, assetsDir),
-                allowedExtensions: getEnvArray(
-                    'RESOURCE_ALLOWED_EXTENSIONS',
-                    Config.public.assets.allowedExtensions
-                ),
-                fileMaxSizeB: getEnvFloat(
-                    'RESOURCE_MAX_SIZE_B',
-                    Config.public.assets.fileMaxSizeB
-                )
-            },
+            assets,
             public: { dir: publicDir, path: publicPath },
             templates: {
                 dir: templatesDir,
@@ -67,8 +46,8 @@ export default (): Pick<IConfig, 'assets'> => {
                 dest: path.join(publicPath, assetsDir),
                 limits: {
                     fileSize: assets.fileMaxSizeB,
-                    fields: 1,
-                    files: 1
+                    fields: Config.public.multer.fields,
+                    files: Config.public.multer.files
                 },
                 storage: diskStorage({
                     destination: (

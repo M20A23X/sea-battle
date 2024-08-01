@@ -1,12 +1,10 @@
-import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
-
 import { NodeEnv } from '#shared/types/interfaces';
 import { getEnvFloat, getEnvString } from '#shared/utils';
 import { EnvException } from '#shared/exceptions';
-import { IConfig } from '#/types';
 
+import { IConfig } from '#/types';
 import { Config } from '#/static';
-import { EnvConfig } from '#/configs';
+import { GeneralConfig } from '#/configs';
 
 export default (): Pick<IConfig, 'database'> => {
     const config: Pick<IConfig, 'database'> = {
@@ -16,7 +14,7 @@ export default (): Pick<IConfig, 'database'> => {
                 username: getEnvString('DATABASE_USERNAME'),
                 password: getEnvString('DATABASE_PASSWORD'),
                 host: getEnvString(
-                    'DATABASE_IP',
+                    'DATABASE_HOST',
                     Config.database.datasource.host
                 ),
                 port: getEnvFloat(
@@ -28,17 +26,11 @@ export default (): Pick<IConfig, 'database'> => {
                     Config.database.datasource.database
                 ),
                 synchronize:
-                    EnvConfig().env.state !== NodeEnv.Production ??
+                    GeneralConfig().env.state !== NodeEnv.Production ??
                     Config.database.datasource.synchronize,
-                type: getEnvString(
-                    'DATABASE_TYPE',
-                    Config.database.datasource.type
-                ) as MysqlConnectionOptions['type']
+                type: Config.database.datasource.type
             },
-            limitFallback: getEnvFloat(
-                'DATABASE_MAX_READ_FALLBACK',
-                Config.database.limitFallback
-            )
+            limitFallback: Config.database.limitFallback
         }
     };
 
