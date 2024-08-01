@@ -4,63 +4,22 @@ on:
   workflow_dispatch:
   push:
     branches: [ 'master', 'dev' ]
+    paths:
+      - 'packages/server/**'
   pull_request:
     branches: [ 'master', 'dev' ]
+    paths:
+      - 'packages/server/**'
 
 env:
-  GITHUB_REF: ${{ github.ref }}
-  BRANCH_DEV: ${{ vars.BRANCH_DEV }}
-  CLIENT_IP: ${{ vars.CLIENT_IP }}
-  CONNECTION_CHECK_INTERVAL_MS: ${{ vars.CONNECTION_CHECK_INTERVAL_MS }}
-  DATABASE_IP: ${{ vars.DATABASE_IP }}
-  DATABASE_NAME: ${{ vars.DATABASE_NAME }}
-  DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
-  DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-  DATABASE_PASSWORD_SALT: ${{ secrets.DATABASE_PASSWORD_SALT }}
-  DATABASE_PORT: ${{ vars.DATABASE_PORT }}
-  DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
-  DOCKER_NETWORK_GATEWAY: ${{ vars.DOCKER_NETWORK_GATEWAY }}
-  DOCKER_NETWORK_IP_RANGE: ${{ vars.DOCKER_NETWORK_IP_RANGE }}
-  DOCKER_NETWORK_SUBNET: ${{ vars.DOCKER_NETWORK_SUBNET }}
-  JWT_SECRET: ${{ secrets.JWT_SECRET }}
-  NGINX_PORT: ${{ vars.NGINX_PORT }}
-  SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
+  SERVER_CONTAINER: server
   SERVER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:server
-  SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
-  SPECS_DATA_AMOUNT: ${{ vars.SPECS_DATA_AMOUNT }}
-  SPECS_HOOK_TIMEOUT_MS: ${{ vars.SPECS_HOOK_TIMEOUT_MS }}
-  SSH_HOST: ${{ secrets.SSH_HOST }}
-  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-  SSH_PORT: ${{ vars.SSH_PORT }}
-  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SERVER_PORT_HTTP: ${{ secrets.DOCKER_NETWORK_SERVER_PORT_HTTP }}
+  SERVER_PORT_WS: ${{ secrets.DOCKER_NETWORK_SERVER_PORT_WS }}
 jobs:
-  check:
-    name: Check files
-    outputs:
-      delta: ${{ steps.check.outputs.delta }}
-    runs-on: ubuntu-latest
-    env:
-      EVENT_NAME: ${{ github.event_name }}
-      EVENT_BEFORE: ${{ github.event.before }}
-      EVENT_AFTER: ${{ github.event.after }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
-
-      - name: Check modified server source files
-        id: check
-        shell: bash
-        run: bash scripts/check-files.sh server
-
   ci:
     name: Server CI
     runs-on: ubuntu-latest
-    needs: check
-    if: needs.check.outputs.delta == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -69,21 +28,59 @@ jobs:
         run: |
           docker network create \
             --driver bridge \
-            --subnet $DOCKER_NETWORK_SUBNET \
-            --gateway $DOCKER_NETWORK_GATEWAY \
-            --ip-range $DOCKER_NETWORK_IP_RANGE \
-            $DOCKER_NETWORK
+            --subnet ${{ secrets.DOCKER_NETWORK_SUBNET }} \
+            --gateway ${{ secrets.DOCKER_NETWORK_GATEWAY }} \
+            --ip-range ${{ secrets.DOCKER_NETWORK_IP_RANGE }} \
+            ${{ secrets.DOCKER_NETWORK }}
 
-      - name: Login to DockerHub registry
-        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+      - name: Build test server image
+        run: |
+          docker build \
+          --file docker/configs/server/Dockerfile.test \
+          --tag ${SERVER_IMAGE}-test \
+          --build-arg PORT_HTTP=$SERVER_PORT_HTTP \
+          --build-arg PORT_WS=$SERVER_PORT_WS \
+          .
 
-      - name: Compose server test
-        run: docker compose --verbose --file docker/docker-compose.test.yml --profile backend up --build --abort-on-container-exit
-
-      - name: Push test server image
-        if: github.ref != 'refs/heads/master'
-        run: docker push $SERVER_IMAGE
-
+      - name: Run server test
+        run: |
+          docker run \
+            --name ${SERVER_CONTAINER}-test \
+            --publish $SERVER_PORT_HTTP:$SERVER_PORT_HTTP \
+            --publish $SERVER_PORT_WS:$SERVER_PORT_WS \
+            --net "${{ secrets.DOCKER_NETWORK }}" \
+            --ip "${{ secrets.DOCKER_NETWORK_SERVER_IP }}" \
+            --env NODE_ENV=testing \
+            --env APP_ID="${{ vars.APP_ID }}" \
+            --env APP_NAME="${{ vars.APP_NAME }}" \
+            --env SERVER_JWT_CONFIRMATION_SECRET="${{ secrets.SERVER_JWT_CONFIRMATION_SECRET }}" \
+            --env SERVER_JWT_RESET_PASSWORD_SECRET="${{ secrets.SERVER_JWT_RESET_PASSWORD_SECRET }}" \
+            --env SERVER_JWT_REFRESH_SECRET="${{ secrets.SERVER_JWT_REFRESH_SECRET }}" \
+            --env SERVER_JWT_ACCESS_PUBLIC_KEY="${{ secrets.SERVER_JWT_ACCESS_PUBLIC_KEY }}" \
+            --env SERVER_JWT_ACCESS_PRIVATE_KEY="${{ secrets.SERVER_JWT_ACCESS_PRIVATE_KEY }}" \
+            --env SERVER_JWT_CONFIRMATION_EXPIRATION_MS="${{ vars.SERVER_JWT_CONFIRMATION_EXPIRATION_MS }}" \
+            --env SERVER_JWT_RESET_PASSWORD_EXPIRATION_MS="${{ vars.SERVER_JWT_RESET_PASSWORD_EXPIRATION_MS }}" \
+            --env SERVER_JWT_REFRESH_EXPIRATION_MS="${{ vars.SERVER_JWT_REFRESH_EXPIRATION_MS }}" \
+            --env SERVER_JWT_ACCESS_EXPIRATION_MS="${{ vars.SERVER_JWT_ACCESS_EXPIRATION_MS }}" \
+            --env SERVER_EMAIL_HOST="${{ secrets.SERVER_EMAIL_HOST }}" \
+            --env SERVER_EMAIL_PORT="${{ secrets.SERVER_EMAIL_PORT }}" \
+            --env SERVER_EMAIL_USERNAME="${{ secrets.SERVER_EMAIL_USERNAME }}" \
+            --env SERVER_EMAIL_PASSWORD="${{ secrets.SERVER_EMAIL_PASSWORD }}" \
+            --env SERVER_PUBLIC_FILE_MAX_SIZE_B="${{ vars.SERVER_PUBLIC_FILE_MAX_SIZE_B }}" \
+            --env SERVER_PUBLIC_ALLOWED_EXTENSIONS="${{ vars.SERVER_PUBLIC_ALLOWED_EXTENSIONS }}" \
+            --env SERVER_HEALTH_DISK_THRESHOLD_PERCENT="${{ vars.SERVER_HEALTH_DISK_THRESHOLD_PERCENT }}" \
+            --env SERVER_HEALTH_MEM_HEAP_THRESHOLD_B="${{ vars.SERVER_HEALTH_MEM_HEAP_THRESHOLD_B }}" \
+            --env SERVER_HEALTH_MEM_RSS_THRESHOLD_B="${{ vars.SERVER_HEALTH_MEM_RSS_THRESHOLD_B }}" \
+            --env DATABASE_HOST="${{ secrets.DATABASE_HOST }}" \
+            --env DATABASE_PORT="${{ secrets.DATABASE_PORT }}" \
+            --env DATABASE_USERNAME="${{ secrets.DATABASE_USERNAME }}" \
+            --env DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" \
+            --env DATABASE_NAME="${{ secrets.DATABASE_NAME }}" \
+            --env DATABASE_PASSWORD_SECRET="${{ secrets.DATABASE_PASSWORD_SECRET }}" \
+            --env DATABASE_CONNECTION_CHECK_TIMEOUT_MS="${{ vars.DATABASE_CONNECTION_CHECK_TIMEOUT_MS }}" \
+            --env FE_ORIGIN=http://"${{ secrets.CLIENT_HOST }}":"${{ secrets.CLIENT_PORT }}" \
+            --env SPECS_HOOK_TIMEOUT_MS="${{ vars.SPECS_HOOK_TIMEOUT_MS }}" \
+            ${SERVER_IMAGE}-test
   cd:
     name: Server CD
     runs-on: ubuntu-latest
@@ -98,103 +95,49 @@ jobs:
           docker build \
             --file docker/configs/server/Dockerfile.prod \
             --tag "${SERVER_IMAGE}-prod" \
-            --build-arg SERVER_PORT_HTTP=$SERVER_PORT_HTTP \
-            --build-arg SERVER_PORT_WS=$SERVER_PORT_WS \
+            --build-arg PORT_HTTP=$SERVER_PORT_HTTP \
+            --build-arg PORT_WS=$SERVER_PORT_WS \
             .
 
       - name: Login to DockerHub registry
-        run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Push production database image
+      - name: Push production server image
         run: docker push "${SERVER_IMAGE}-prod"
 
       - name: Pull and run server image on remote host
         uses: appleboy/ssh-action@v1.0.0
-        env:
-          SERVER_CONTAINER: server
-          DATABASE_IP: ${{ vars.DATABASE_IP }}
-          DATABASE_NAME: ${{ vars.DATABASE_NAME }}
-          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-          DATABASE_PASSWORD_SALT: ${{ secrets.DATABASE_PASSWORD_SALT }}
-          DATABASE_PORT: ${{ vars.DATABASE_PORT }}
-          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          SERVER_PORT_HTTP: ${{ vars.SERVER_PORT_HTTP }}
-          SERVER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:server
-          SERVER_IP: ${{ vars.SERVER_IP }}
-          SERVER_PORT_WS: ${{ vars.SERVER_PORT_WS }}
         with:
-          host: $SSH_HOST
-          port: $SSH_PORT
-          username: $SSH_USERNAME
-          password: $SSH_PASSWORD
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
           envs:
-            DATABASE_IP,
-            DATABASE_NAME,
-            DATABASE_PASSWORD,
-            DATABASE_PASSWORD_SALT,
-            DATABASE_PORT,
-            DATABASE_USERNAME,
-            DOCKERHUB_PASSWORD,
-            DOCKERHUB_USERNAME,
-            DOCKER_NETWORK,
-            JWT_SECRET,
-            NODE_ENV,
-            OLD_IMAGE,
+            SERVER_IMAGE,
             SERVER_CONTAINER,
             SERVER_PORT_HTTP,
-            SERVER_IMAGE,
-            SERVER_IMAGE_PROD,
-            SERVER_IP,
             SERVER_PORT_WS
           script: |
             set -e
-            export DATABASE_IP=$DATABASE_IP
-            export DATABASE_NAME=$DATABASE_NAME
-            export DATABASE_PASSWORD=$DATABASE_PASSWORD
-            export DATABASE_PASSWORD_SALT=$DATABASE_PASSWORD_SALT
-            export DATABASE_PORT=$DATABASE_PORT
-            export DATABASE_USERNAME=$DATABASE_USERNAME
-            export DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD
-            export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
-            export DOCKER_NETWORK=$DOCKER_NETWORK
-            export JWT_SECRET=$JWT_SECRET
-            export NODE_ENV=prod
-            export SERVER_CONTAINER=$SERVER_CONTAINER
-            export SERVER_PORT_HTTP=$SERVER_PORT_HTTP
-            export SERVER_IMAGE=$SERVER_IMAGE
             export SERVER_IMAGE_PROD="${SERVER_IMAGE}-prod"
-            export SERVER_IP=$SERVER_IP
-            export SERVER_PORT_WS=$SERVER_PORT_WS
-            export OLD_IMAGE=$(docker images -q $SERVER_IMAGE_PROD)$(echo "fallback")
+            export OLD_IMAGE_ID=$(docker images -q $SERVER_IMAGE_PROD)$(echo "fallback")
             
-            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+            echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
             docker pull $SERVER_IMAGE_PROD
-
+            
             docker stop $SERVER_CONTAINER || true
             docker container rm -f $SERVER_CONTAINER
-            docker image rm -f $OLD_IMAGE
+            docker image rm -f $OLD_IMAGE_ID
             
-            command="docker run -dit \
+            docker run -dit \
               --restart unless-stopped \
+              --name $SERVER_CONTAINER \
               --publish $SERVER_PORT_HTTP:$SERVER_PORT_HTTP \
               --publish $SERVER_PORT_WS:$SERVER_PORT_WS \
-              --name $SERVER_CONTAINER \
-              --net $DOCKER_NETWORK \
-              --ip $SERVER_IP \
-              --env DATABASE_IP \
-              --env DATABASE_NAME \
-              --env DATABASE_PASSWORD \
-              --env DATABASE_PASSWORD_SALT \
-              --env DATABASE_PORT \
-              --env DATABASE_USERNAME \
-              --env NODE_ENV \
-              --env SERVER_PORT_HTTP \
-              --env SERVER_PORT_WS \
-              $SERVER_IMAGE_PROD"
-            echo $command
-            eval $command
+              --net ${{ secrets.DOCKER_NETWORK }} \
+              --ip ${{ secrets.DOCKER_NETWORK_SERVER_IP }} \
+              --env NODE_ENV=production \
+              --env-file $(pwd)/env/server/.env \
+              $SERVER_IMAGE_PROD
+
             docker ps

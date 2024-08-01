@@ -8,9 +8,8 @@ RUN --mount=type=cache,target=~/AppData/Local/Yarn/Cache/v4 \
     --mount=type=bind,source=package.json,rw,target=package.json \
     --mount=type=bind,source=packages/shared/package.json,target=packages/shared/package.json \
     --mount=type=bind,source=packages/server/package.json,target=packages/server/package.json \
-    --mount=type=bind,source=yarn.lock,target=yarn.lock \
-    yarn install --frozen-lockfile --non-interactive --ignore-scripts \
-    && yarn upgrade bcrypt --frozen-lockfile --non-interactive
+    --mount=type=bind,source=yarn.lock,rw,target=yarn.lock \
+    yarn install --non-interactive --ignore-scripts
 
 COPY --chown=app:app ./package.json ./lerna.json ./jest.config.json ./
 
@@ -27,4 +26,5 @@ FROM node:18
 WORKDIR /usr/src/app/
 
 COPY --from=base /usr/src/app/ .
-CMD ["yarn", "test:quick", "--scope server"]
+
+CMD ["yarn", "test:quick", "server"]
