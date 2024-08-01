@@ -1,8 +1,8 @@
 export * from './models/dtos/credentials.dto';
 export * from './models/dtos/email.dto';
-export * from './models/dtos/imgPath.dto';
+export * from './models/dtos/img-path.dto';
 export * from './models/dtos/password.dto';
-export * from './models/dtos/passwordSet.dto';
+export * from './models/dtos/password-set.dto';
 export * from './models/dtos/range.dto';
 // export * from './models/dtos/resourse.dto';
 export * from './models/dtos/token.dto';

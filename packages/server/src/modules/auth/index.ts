@@ -1,4 +1,4 @@
 export * from './models/dtos/tokens.dto';
-export * from './models/dtos/resetPassword.dto';
-export * from './models/dtos/signIn.dto';
-export * from './models/dtos/signUp.dto';
+export * from './models/dtos/reset-password.dto';
+export * from './models/dtos/sign-in.dto';
+export * from './models/dtos/sign-up.dto';

@@ -5,9 +5,11 @@ import {
     PrimaryGeneratedColumn,
     Unique
 } from 'typeorm';
+
 import { IUser, IUserCredentials } from '#shared/types/interfaces';
 import { Format } from '#shared/static/format';
-import { UserCredentialsEmbeddable } from '#/modules/user/models/entities/embeddables/UserCredentials.embeddable';
+
+import { UserCredentialsEmbeddable } from './embeddables/user-credentials.embeddable';
 
 //--- UserEntity -----------
 @Entity({ name: 'tbl_users' })

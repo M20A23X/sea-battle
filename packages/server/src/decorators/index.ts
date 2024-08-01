@@ -1,1 +1,1 @@
-export * from './isBiggerThan.decorator';
+export * from './is-bigger-than.decorator';
