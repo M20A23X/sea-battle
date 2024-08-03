@@ -169,17 +169,17 @@ class UserService implements IUserService {
         const months: number = days / 30;
 
         const message = "passwords don't match - you changed your password ";
-        if (months > 0) {
+        if (months > 1) {
             throw new UnauthorizedException(
                 message + months + (months > 1 ? 'months ago' : 'month ago')
             );
         }
-        if (days > 0) {
+        if (days > 1) {
             throw new UnauthorizedException(
                 message + days + (days > 1 ? 'days ago' : 'day ago')
             );
         }
-        if (hours > 0) {
+        if (hours > 1) {
             throw new UnauthorizedException(
                 message + hours + (hours > 1 ? 'hours ago' : 'hour ago')
             );
