@@ -1,1 +1,1 @@
-export * from './logHttpRequest.middleware';
+export * from './log-request.middleware';

@@ -6,28 +6,46 @@ import {
     Unique
 } from 'typeorm';
 
-import { IUser } from '#shared/types';
+import { IUser, IUserCredentials } from '#shared/types/interfaces';
+import { Format } from '#shared/static/format';
 
-import { USER_ENTITY } from '#/static';
+import { UserCredentialsEmbeddable } from './embeddables/user-credentials.embeddable';
 
-const { username, password, imgPath } = USER_ENTITY;
-
+//--- UserEntity -----------
 @Entity({ name: 'tbl_users' })
-export class User implements IUser {
+class UserEntity implements IUser {
     @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'users_PK_userId' })
-    public userId: number;
-
+    public readonly userId: number;
     @Column({ type: 'uuid' })
     @Generated('uuid')
-    public userUUID: string;
+    public readonly uuid: string;
 
-    @Column({ type: 'varchar', length: username.maxLength })
+    @Column({ type: 'varchar' })
+    @Unique('users_UQ_email', ['email'])
+    public email: string;
+
+    @Column({ type: 'varchar', length: Format.username.maxLength })
     @Unique('users_UQ_username', ['username'])
     public username: string;
 
-    @Column({ type: 'varchar', length: password.maxLength })
+    @Column({ type: 'varchar', length: Format.password.maxLength })
     public password: string;
 
-    @Column({ type: 'varchar', length: imgPath.maxLength })
-    public imgPath: string;
+    @Column({ type: 'varchar', nullable: true, length: Format.path.maxLength })
+    public imgPath: string | null;
+
+    @Column(() => UserCredentialsEmbeddable)
+    public readonly credentials: IUserCredentials;
+
+    public static updatePassword(entity: UserEntity, password: string): void {
+        entity.password = password;
+        entity.credentials.passwordUpdatedAt = new Date();
+    }
+
+    public static updateVersion(entity: UserEntity, date?: Date): void {
+        entity.credentials.version++;
+        entity.credentials.updatedAt = date ?? new Date();
+    }
 }
+
+export { UserEntity };

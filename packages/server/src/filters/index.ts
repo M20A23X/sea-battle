@@ -1,1 +1,1 @@
-export * from './exceptionLogger.filter';
+export * from './exception.filter';

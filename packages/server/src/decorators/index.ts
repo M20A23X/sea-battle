@@ -1,2 +1,1 @@
-export * from './IsBiggerThanOrEqual';
-export * from './IsEqualTo';
+export * from './is-bigger-than.decorator';

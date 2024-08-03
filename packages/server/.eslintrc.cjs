@@ -11,6 +11,7 @@ module.exports = {
       alias: {
         map: [
           ["#/", "src/"],
+          ["#shared/specs", "../shared/specs/"],
           ["#shared", "../shared/src/"]
         ],
         extensions: [".ts"]

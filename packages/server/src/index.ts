@@ -1,33 +1,53 @@
+import bodyParser from 'body-parser';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { INestApplication, LogLevel } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
-import { NODE_ENV_PROD } from '#shared/static';
-import { PORT } from '#/static';
+import {
+    IEnvConfig,
+    IValidationConfig,
+    NodeEnv
+} from '#shared/types/interfaces';
+import { IConfig } from '#/types';
 
-import { validationConfig } from '#/configs';
-
-import { ExceptionLoggerFilter } from '#/filters';
-
-import { ILoggerService, LoggerService } from '#/services/logger.service';
+import { ValidationPipe } from '#/pipes';
 
 import { AppModule } from '#/app.module';
+import { LoggerService } from '#/services';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, {
-        logger:
-            process.env.NODE_ENV !== NODE_ENV_PROD
-                ? ['log', 'error', 'warn', 'debug', 'verbose']
-                : ['log', 'error', 'warn']
+    //--- App -----------
+    const app: INestApplication = await NestFactory.create(AppModule, {
+        bodyParser: false
     });
 
-    const loggerService: ILoggerService = app.get(LoggerService);
+    //--- Configs -----------
+    const configService: ConfigService<IConfig> = app.get(ConfigService);
+    const env: IEnvConfig = configService.getOrThrow('env');
+    const validation: IValidationConfig =
+        configService.getOrThrow('validation');
 
-    app.useGlobalFilters(new ExceptionLoggerFilter());
-    app.useGlobalPipes(new ValidationPipe(validationConfig));
-    app.useLogger(loggerService);
+    //--- Pipes -----------
+    app.useGlobalPipes(new ValidationPipe(validation.validation));
+
+    //--- Logger -----------
+    const logger: LoggerService = app.get(LoggerService);
+    const logLevels: LogLevel[] =
+        env.state === NodeEnv.Production
+            ? ['log', 'error', 'warn']
+            : env.state === NodeEnv.Development
+            ? ['log', 'error', 'warn', 'debug', 'verbose']
+            : ['log', 'error', 'warn', 'verbose'];
+    logger.setLogLevels(logLevels);
+    app.useLogger(logger);
+
+    //--- Misc -----------
     app.enableCors({ origin: '*' });
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
 
+    //--- Swagger -----------
     const config = new DocumentBuilder()
         .setTitle('Games')
         .setVersion('1.0')
@@ -36,9 +56,9 @@ async function bootstrap() {
     const document: OpenAPIObject = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, document);
 
-    const port = parseInt(process.env.SERVER_PORT_HTTP || '') || PORT;
-    await app.listen(port);
-    loggerService.log(`Application running on port: ${port}`);
+    //--- App -----------
+    await app.listen(env.port);
+    logger.log(`Application is running on port: ${env.port}`);
 }
 
 bootstrap();

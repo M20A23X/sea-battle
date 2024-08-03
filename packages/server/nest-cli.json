@@ -7,6 +7,10 @@
   "compilerOptions": {
     "plugins": [
       "@nestjs/swagger"
-    ]
+    ],
+    "assets": [
+      "mailer/templates/**/*"
+    ],
+    "watchAssets": true
   }
 }

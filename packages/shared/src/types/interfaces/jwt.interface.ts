@@ -7,13 +7,6 @@ enum TokenTypeEnum {
     CONFIRMATION = 'confirmation',
     RESET_PASSWORD = 'resetPassword'
 }
-
-interface IKeyPath {
-    keyPath: {
-        public: string;
-        private: string;
-    };
-}
 interface IToken {
     token: string;
 }
@@ -47,14 +40,13 @@ interface IJwtConfig {
         [TokenTypeEnum.RESET_PASSWORD]: ISingleJwt;
     };
 }
-interface IJwtDefault extends IKeyPath {
+interface IJwtDefault {
     tokens: Record<keyof IJwtConfig['tokens'], IJwtTime>;
 }
 
 export {
     TokenTypeEnum,
     IToken,
-    IKeyPath,
     IJwtConfig,
     IJwtDefault,
     ISingleJwt,

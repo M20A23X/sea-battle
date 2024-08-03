@@ -38,6 +38,9 @@
       ],
       "#shared/*": [
         "../../shared/dist/src/*"
+      ],
+      "#shared/specs/*": [
+        "../../shared/dist/specs/*"
       ]
     }
   }

@@ -1,4 +1,3 @@
-export * from './initApp';
-export * from './dataSource';
-export * from './users';
-export * from './auth';
+export * from './data-source.util';
+export * from './init.util';
+export * from './test.util';

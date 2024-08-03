@@ -1,4 +1,4 @@
 import * as http from 'http';
-import { PORT } from '#/static/common';
+import { GeneralConfig } from '#/configs';
 
-http.get(`https:///127.0.0.1:${process.env.SERVER_PORT_HTTP || PORT}`);
+http.get(`https://127.0.0.1:${GeneralConfig().env.port}`);

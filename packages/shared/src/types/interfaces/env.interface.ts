@@ -9,7 +9,7 @@ interface IEnvConfig {
     appName: string;
     state: NodeEnv;
     port: number;
-    portWs?: number;
+    portWs: number;
     frontEndOrigin: string;
 }
 
