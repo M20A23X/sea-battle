@@ -42,7 +42,7 @@ import {
     AuthModule,
     HealthModule,
     MailerModule,
-    // ResourceModule,
+    ResourceModule,
     UserModule
 } from '#/modules';
 import { LoggerService } from '#/services';
@@ -76,7 +76,7 @@ export const init = async (): Promise<Init> => {
             }),
             HealthModule,
             MailerModule,
-            // ResourceModule,
+            ResourceModule,
             UserModule,
             AuthModule
         ],

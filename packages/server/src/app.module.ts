@@ -22,7 +22,7 @@ import { LogRequestMiddleware } from '#/middleware';
 import {
     AuthModule,
     HealthModule,
-    // ResourceModule,
+    ResourceModule,
     MailerModule,
     UserModule
 } from '#/modules';
@@ -52,7 +52,7 @@ import { LoggerService } from '#/services';
         }),
         HealthModule,
         MailerModule,
-        // ResourceModule,
+        ResourceModule,
         UserModule,
         AuthModule
     ],

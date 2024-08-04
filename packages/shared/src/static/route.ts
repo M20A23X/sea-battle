@@ -15,8 +15,8 @@ const Route: IRoute = {
         signIn: '/signin',
         accessRefresh: '/refresh',
         signOut: '/signout'
-    }
-    // resource: { index: '/resources' }
+    },
+    resource: { index: '/resources' }
 };
 
 export { Route };
