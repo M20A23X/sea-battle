@@ -41,7 +41,7 @@ interface IUserController {
     delete(body: UserDeleteDTO): Res;
 }
 
-@Controller(Route.users.index)
+@Controller(Route.user.index)
 @UseGuards(AuthGuard)
 class UserController implements IUserController {
     // --- Constructor -------------------------------------------------------------
@@ -53,7 +53,7 @@ class UserController implements IUserController {
     // --- Public -------------------------------------------------------------
     // --- Instance --------------------
 
-    //--- GET /read -----------
+    //--- GET -----------
     @Get()
     @ApiBody(UserReadSchema)
     @ApiConsumes(MimeType.ApplicationJson)
@@ -93,7 +93,7 @@ class UserController implements IUserController {
         return { message: 'Successfully read the users', payload };
     }
 
-    //--- PUT /update -----------
+    //--- PUT -----------
     @Put()
     @ApiBody({ type: [UserUpdateDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
@@ -104,7 +104,7 @@ class UserController implements IUserController {
         return { message: 'Successfully updated the user', payload };
     }
 
-    //--- DELETE /delete -----------
+    //--- DELETE -----------
     @Delete()
     @ApiBody({ type: [UserDeleteDTO] })
     @ApiConsumes(MimeType.ApplicationJson)

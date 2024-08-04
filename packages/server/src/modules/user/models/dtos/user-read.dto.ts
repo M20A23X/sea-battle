@@ -3,16 +3,17 @@ import { ApiBodyOptions } from '@nestjs/swagger/dist/decorators/api-body.decorat
 
 import { IUserDTO } from '#shared/types/interfaces';
 import { EmailDTO, RangeDTO, UsernameDTO, UuidDTO } from '#/modules/base';
-import { createUserDTO } from '#/utils/dto.util';
+import { DTO } from '#/utils/dto.util';
 
+//--- UserReadDTO -----------
 type UserReadDTOType = IUserDTO<UsernameDTO | UuidDTO | EmailDTO | RangeDTO>;
 const UserReadSchema: ApiBodyOptions = {
     schema: {
         oneOf: [
-            { $ref: getSchemaPath(createUserDTO(UuidDTO)) },
-            { $ref: getSchemaPath(createUserDTO(UsernameDTO)) },
-            { $ref: getSchemaPath(createUserDTO(EmailDTO)) },
-            { $ref: getSchemaPath(createUserDTO(RangeDTO)) }
+            { $ref: getSchemaPath(DTO.user(UuidDTO)) },
+            { $ref: getSchemaPath(DTO.user(UsernameDTO)) },
+            { $ref: getSchemaPath(DTO.user(EmailDTO)) },
+            { $ref: getSchemaPath(DTO.user(RangeDTO)) }
         ]
     }
 };

@@ -5,18 +5,18 @@ import {
     IToken
 } from '#shared/types/interfaces';
 import { IntersectionType } from '@nestjs/swagger';
+
 import { EmailDTO, PasswordSetDTO, TokenDTO } from '#/modules/base';
-import { createAuthDTO } from '#/utils';
+import { DTO } from '#/utils';
 
 //--- ResetPasswordDTO -----------
 class RequestPasswordResetDTO
-    extends createAuthDTO(EmailDTO)
+    extends DTO.auth(EmailDTO)
     implements IAuthDTO<IEmail> {}
 
 //--- SetPasswordDTO -----------
-class ResetPasswordData extends IntersectionType(TokenDTO, PasswordSetDTO) {}
 class ResetPasswordDTO
-    extends createAuthDTO(ResetPasswordData)
+    extends DTO.auth(IntersectionType(TokenDTO, PasswordSetDTO))
     implements IAuthDTO<IPasswordSet & IToken> {}
 
 export { RequestPasswordResetDTO, ResetPasswordDTO };

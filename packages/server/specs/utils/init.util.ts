@@ -1,18 +1,23 @@
+import { v4 } from 'uuid';
+import * as Jwt from 'jsonwebtoken';
+import { DataSource } from 'typeorm';
+import bodyParser from 'body-parser';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { INestApplication, LogLevel, ModuleMetadata } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
-import { DataSource } from 'typeorm';
-import bodyParser from 'body-parser';
-
 import {
     IConfigSpecs,
     ISpecsConfig,
     IHealthConfig,
     IValidationConfig,
-    NodeEnv
+    NodeEnv,
+    TokenTypeEnum,
+    IAccessPayload,
+    IJwtConfig,
+    IEnvConfig
 } from '#shared/types/interfaces';
 
 import { SpecsConfig } from '../configs';
@@ -25,7 +30,7 @@ import {
     EmailConfig,
     GeneralConfig,
     HealthConfig,
-    PublicConfig,
+    AssetsConfig,
     ValidationConfig
 } from '#/configs';
 
@@ -41,8 +46,9 @@ import {
     UserModule
 } from '#/modules';
 import { LoggerService } from '#/services';
+import { IEmailConfig } from '#/types/interfaces';
 
-type Init = [INestApplication, ISpecsConfig, LoggerService, DataSource];
+type Init = [INestApplication, ISpecsConfig, LoggerService, string, DataSource];
 
 export const init = async (): Promise<Init> => {
     const metadata: ModuleMetadata = {
@@ -58,7 +64,7 @@ export const init = async (): Promise<Init> => {
                     EmailConfig,
                     GeneralConfig,
                     HealthConfig,
-                    PublicConfig,
+                    AssetsConfig,
                     ValidationConfig
                 ],
                 envFilePath:
@@ -94,6 +100,9 @@ export const init = async (): Promise<Init> => {
     const validation: IValidationConfig =
         configService.getOrThrow('validation');
     const health: IHealthConfig = configService.getOrThrow('health');
+    const jwt: IJwtConfig = configService.getOrThrow('jwt');
+    const email: IEmailConfig = configService.getOrThrow('email');
+    const env: IEnvConfig = configService.getOrThrow('env');
 
     //--- Pipes -----------
     app.useGlobalPipes(new ValidationPipe(validation.validation));
@@ -112,7 +121,24 @@ export const init = async (): Promise<Init> => {
     const dataSource: DataSource = app.get<DataSource>(DataSource);
     await waitDataSource(dataSource, health.databaseConnectionCheckTimeoutMs);
 
+    // --- JWT --------------------
+    const jwtOptions: JwtSignOptions = {
+        issuer: env.appId,
+        audience: env.frontEndOrigin,
+        subject: email.credentials.username,
+        expiresIn: jwt.tokens[TokenTypeEnum.ACCESS].timeMs,
+        algorithm: 'RS256'
+    };
+    const jwtPayload: IAccessPayload = { uuid: v4(), username: 'username' };
+    const token: string = Jwt.sign(
+        jwtPayload,
+        jwt.tokens[TokenTypeEnum.ACCESS].privateKey,
+        jwtOptions
+    );
+    const accessToken = `Bearer ${token}`;
+    logger.debug(token);
+
     await app.init();
 
-    return [app, specs, logger, dataSource];
+    return [app, specs, logger, accessToken, dataSource];
 };

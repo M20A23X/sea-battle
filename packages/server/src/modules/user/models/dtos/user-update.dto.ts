@@ -8,8 +8,9 @@ import {
     UsernameDTO,
     UuidDTO
 } from '#/modules/base';
-import { createUserDTO } from '#/utils/dto.util';
+import { DTO } from '#/utils/dto.util';
 
+//--- UserUpdateDTO -----------
 class Data
     extends IntersectionType(
         UuidDTO,
@@ -20,7 +21,7 @@ class Data
     implements IUserUpdate {}
 
 class UserUpdateDTO
-    extends createUserDTO<IUserUpdate>(Data)
+    extends DTO.user<IUserUpdate>(Data)
     implements IUserDTO<IUserUpdate> {}
 
 export { UserUpdateDTO };

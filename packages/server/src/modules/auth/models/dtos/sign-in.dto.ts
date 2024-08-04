@@ -1,10 +1,10 @@
 import { IAuthCredentials, IAuthDTO } from '#shared/types/interfaces';
 import { CredentialsDTO } from '#/modules/base';
-import { createAuthDTO } from '#/utils';
+import { DTO } from '#/utils';
 
 //--- SignInDTO -----------
 class SignInDTO
-    extends createAuthDTO(CredentialsDTO)
+    extends DTO.auth(CredentialsDTO)
     implements IAuthDTO<IAuthCredentials> {}
 
 export { SignInDTO };

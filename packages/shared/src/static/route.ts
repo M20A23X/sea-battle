@@ -1,5 +1,7 @@
-const Route = {
-    users: { index: '/users' },
+import { IRoute } from '#/types';
+
+const Route: IRoute = {
+    user: { index: '/users' },
     health: {
         index: '/health',
         status: '/status'
@@ -14,6 +16,7 @@ const Route = {
         accessRefresh: '/refresh',
         signOut: '/signout'
     }
+    // resource: { index: '/resources' }
 };
 
 export { Route };

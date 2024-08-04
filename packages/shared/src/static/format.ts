@@ -56,7 +56,7 @@ const Format: IFormat = {
         regex: new RegExp(`^[${AllowedFileChars}]+$`),
         minLength: 3,
         maxLength: 256,
-        errorMessage: ` should contain only '${AllowedFileChars}'`
+        errorMessage: ` filename must contain only '${AllowedFileChars}'`
     }
 };
 

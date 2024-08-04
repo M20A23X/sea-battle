@@ -16,7 +16,6 @@ import {
 } from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
 
-import { IHealthController } from '#shared/types';
 import {
     IEnvConfig,
     IHealthConfig,
@@ -26,6 +25,12 @@ import {
 import { Route } from '#shared/static';
 
 import { IConfig } from '#/types';
+
+interface IHealthController {
+    get(): Res<string>;
+
+    getCheckHealth(): Res<HealthCheckResult | unknown>;
+}
 
 @Controller(Route.health.index)
 class HealthController implements IHealthController {

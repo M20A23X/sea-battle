@@ -7,14 +7,14 @@ import {
     PasswordSetDTO,
     UsernameDTO
 } from '#/modules/base';
-import { createAuthDTO } from '#/utils';
+import { DTO } from '#/utils';
 
 class Data
     extends IntersectionType(UsernameDTO, EmailDTO, PasswordSetDTO, ImgPathDTO)
     implements IUserCreate {}
 
 class SignUpDTO
-    extends createAuthDTO<IUserCreate>(Data)
+    extends DTO.auth<IUserCreate>(Data)
     implements IAuthDTO<IUserCreate> {}
 
 export { SignUpDTO };
