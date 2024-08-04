@@ -103,7 +103,7 @@ export default (): Pick<IConfig, 'assets'> => {
                     if (!isNameValid) {
                         return next(
                             new UnprocessableEntityException(
-                                'incorrect file name'
+                                Format.filename.errorMessage
                             ),
                             false
                         );

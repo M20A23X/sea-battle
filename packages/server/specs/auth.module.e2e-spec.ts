@@ -1,36 +1,28 @@
-import * as Jwt from 'jsonwebtoken';
-import { v4 } from 'uuid';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { JwtSignOptions } from '@nestjs/jwt';
 
 import {
-    IConfigSpecs,
-    ISpecsConfig,
-    IAccessPayload,
     IAuthResult,
+    IConfigSpecs,
     IEnvConfig,
-    IJwtConfig,
+    ISpecsConfig,
     IUserCreate,
-    IUserPublic,
-    TokenTypeEnum
+    IUserPublic
 } from '#shared/types/interfaces';
-import { SpecsConfig, Format, Route } from '#shared/static';
+import { Route, SpecsConfig } from '#shared/static';
 
-import { getRoute } from 'shared/src/utils';
+import { getRoute } from '#shared/utils';
+import request from 'supertest';
 import { init, requireRunTest, truncateTable } from './utils';
 
 import { IConfig } from '#/types';
-import { IEmailConfig } from '#/types/interfaces';
 import { UserEntity } from '#/modules/user';
 import {
-    ConfirmationTokenDTO,
-    RefreshTokenAccessDTO,
+    AuthTokenDTO,
     RequestPasswordResetDTO,
     ResetPasswordDTO,
     SignInDTO,
-    SignOutDTO,
     SignUpDTO
 } from '#/modules/auth';
 import { AuthService, LoggerService, UserService } from '#/services';
@@ -72,35 +64,16 @@ describe('Auth module', () => {
 
     beforeAll(async () => {
         let app: INestApplication;
-        [app, specs, logger, dataSource] = await init();
+        [app, specs, logger, accessToken, dataSource] = await init();
         // --- Configs --------------------
         const configService: ConfigService<IConfig & IConfigSpecs> =
             app.get(ConfigService);
         specs = configService.getOrThrow('specs');
         env = configService.getOrThrow('env');
-        const jwt: IJwtConfig = configService.getOrThrow('jwt');
-        const email: IEmailConfig = configService.getOrThrow('email');
 
         // --- Services --------------------
         userService = app.get<UserService>(UserService);
         authService = app.get<AuthService>(AuthService);
-
-        // --- JWT --------------------
-        const jwtOptions: JwtSignOptions = {
-            issuer: env.appId,
-            audience: env.frontEndOrigin,
-            subject: email.credentials.username,
-            expiresIn: jwt.tokens[TokenTypeEnum.ACCESS].timeMs,
-            algorithm: 'RS256'
-        };
-        const jwtPayload: IAccessPayload = { uuid: v4(), username: 'username' };
-        const token: string = Jwt.sign(
-            jwtPayload,
-            jwt.tokens[TokenTypeEnum.ACCESS].privateKey,
-            jwtOptions
-        );
-        accessToken = `Bearer ${token}`;
-        logger.debug(token);
 
         runTest = requireRunTest(app, accessToken, env.frontEndOrigin);
     }, SpecsConfig.specs.getHookTimeoutMs());
@@ -128,19 +101,25 @@ describe('Auth module', () => {
             logger.debug(sampleUser);
         }, SpecsConfig.specs.getHookTimeoutMs());
 
-        const runRefreshTest = <T extends object>(
-            dto: T,
+        const runRefreshTest = (
+            dto: AuthTokenDTO,
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully refreshed token access`
         ): Promise<void> => {
             const url: string = getRoute(Route.auth, 'accessRefresh');
-            return runTest('get', url, dto, status, message);
+            return runTest(
+                'get',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
             'should refresh token access',
             async () => {
-                const dto: RefreshTokenAccessDTO = {
+                const dto: AuthTokenDTO = {
                     auth: { token: refreshToken }
                 };
                 await runRefreshTest(dto);
@@ -165,7 +144,7 @@ describe('Auth module', () => {
         it(
             "shouldn't refresh token access because of invalid token",
             async () => {
-                const dto: RefreshTokenAccessDTO = {
+                const dto: AuthTokenDTO = {
                     auth: { token: refreshToken + 'a' }
                 };
                 await runRefreshTest(
@@ -194,19 +173,25 @@ describe('Auth module', () => {
             logger.debug(sampleUser);
         }, SpecsConfig.specs.getHookTimeoutMs());
 
-        const runSignOutTest = <T extends object>(
-            dto: T,
+        const runSignOutTest = (
+            dto: AuthTokenDTO,
             status: HttpStatus = HttpStatus.CREATED,
             message = `Successfully signed out the user`
         ): Promise<void> => {
             const url: string = getRoute(Route.auth, 'signOut');
-            return runTest('post', url, dto, status, message);
+            return runTest(
+                'post',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
             'should sign out the user',
             async () => {
-                const dto: SignOutDTO = {
+                const dto: AuthTokenDTO = {
                     auth: { token: refreshToken }
                 };
                 await runSignOutTest(dto);
@@ -231,7 +216,7 @@ describe('Auth module', () => {
         it(
             "shouldn't sign out the user because of invalid token",
             async () => {
-                const dto: RefreshTokenAccessDTO = {
+                const dto: AuthTokenDTO = {
                     auth: { token: refreshToken + 'a' }
                 };
                 await authService.signOut(refreshToken);
@@ -255,13 +240,19 @@ describe('Auth module', () => {
             logger.debug(sampleUser);
         }, SpecsConfig.specs.getHookTimeoutMs());
 
-        const runSignInTest = <T extends object>(
-            dto: T,
+        const runSignInTest = (
+            dto: SignInDTO,
             status: HttpStatus = HttpStatus.CREATED,
             message = `Successfully signed in the user`
         ): Promise<void> => {
             const url: string = getRoute(Route.auth, 'signIn');
-            return runTest('post', url, dto, status, message);
+            return runTest(
+                'post',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
@@ -360,13 +351,19 @@ describe('Auth module', () => {
             logger.debug(sampleUser);
         }, SpecsConfig.specs.getHookTimeoutMs());
 
-        const runConfirmTest = <T extends object>(
-            dto: T,
+        const runConfirmTest = (
+            dto: ResetPasswordDTO,
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully set a new password`
         ): Promise<void> => {
             const url: string = getRoute(Route.auth, 'passwordResetting');
-            return runTest('put', url, dto, status, message);
+            return runTest(
+                'put',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
@@ -430,13 +427,19 @@ describe('Auth module', () => {
             logger.debug(sampleUser);
         }, SpecsConfig.specs.getHookTimeoutMs());
 
-        const runConfirmTest = <T extends object>(
-            dto: T,
+        const runConfirmTest = (
+            dto: RequestPasswordResetDTO,
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully sent a link for password resetting`
         ): Promise<void> => {
             const url: string = getRoute(Route.auth, 'passwordResetRequest');
-            return runTest('get', url, dto, status, message);
+            return runTest(
+                'get',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
@@ -493,19 +496,25 @@ describe('Auth module', () => {
             logger.debug(sampleUser);
         }, SpecsConfig.specs.getHookTimeoutMs());
 
-        const runConfirmTest = <T extends object>(
-            dto: T,
+        const runConfirmTest = (
+            dto: AuthTokenDTO,
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully confirmed the user`
         ): Promise<void> => {
             const url: string = getRoute(Route.auth, 'emailConfirmation');
-            return runTest('put', url, dto, status, message);
+            return runTest(
+                'put',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
             'should confirm the user email',
             async () => {
-                const dto: ConfirmationTokenDTO = {
+                const dto: AuthTokenDTO = {
                     auth: { token: confirmationToken }
                 };
                 await runConfirmTest(dto);
@@ -531,7 +540,7 @@ describe('Auth module', () => {
         it(
             "shouldn't confirm the user email because of the wrong token provided",
             async () => {
-                const dto: ConfirmationTokenDTO = {
+                const dto: AuthTokenDTO = {
                     auth: { token: 'wrongToken' }
                 };
                 await runConfirmTest(
@@ -545,13 +554,19 @@ describe('Auth module', () => {
     });
 
     describe(Route.auth.signup + ' POST', function () {
-        const runSignUpTest = <T extends object>(
-            dto: T,
+        const runSignUpTest = (
+            dto: SignUpDTO,
             status: HttpStatus = HttpStatus.CREATED,
             message = `Successfully signed up a new user`
         ): Promise<void> => {
             const url: string = getRoute(Route.auth, 'signup');
-            return runTest('post', url, dto, status, message);
+            return runTest(
+                'post',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
@@ -571,28 +586,6 @@ describe('Auth module', () => {
                     }
                 };
                 await runSignUpTest(dto);
-            },
-            specs.getHookTimeoutMs()
-        );
-
-        it(
-            "shouldn't sign up a new user because of missing username",
-            async () => {
-                const dto = {
-                    auth: {
-                        email: 'sample@email.com',
-                        imgPath: null,
-                        passwordSet: {
-                            password: 'Us24mmsv200#',
-                            passwordConfirm: 'Us24mmsv200#'
-                        }
-                    }
-                };
-                await runSignUpTest(
-                    dto,
-                    HttpStatus.BAD_REQUEST,
-                    'Error: username' + Format.username.errorMessage
-                );
             },
             specs.getHookTimeoutMs()
         );

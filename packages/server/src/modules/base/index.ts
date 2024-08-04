@@ -4,7 +4,7 @@ export * from './models/dtos/img-path.dto';
 export * from './models/dtos/password.dto';
 export * from './models/dtos/password-set.dto';
 export * from './models/dtos/range.dto';
-// export * from './models/dtos/resourse.dto';
+export * from './models/dtos/resourse.dto';
 export * from './models/dtos/token.dto';
 export * from './models/dtos/username.dto';
 export * from './models/dtos/uuid.dto';

@@ -1,34 +1,27 @@
-import { v4 } from 'uuid';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import * as Jwt from 'jsonwebtoken';
 import request, { Response } from 'supertest';
-import { JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
 import {
     IConfigSpecs,
-    ISpecsConfig,
-    IAccessPayload,
     IEmail,
     IEnvConfig,
     IImgPath,
-    IJwtConfig,
     IPasswordSet,
+    ISpecsConfig,
     IUser,
     IUserCreate,
     IUsername,
     IUserPublic,
     MimeType,
-    ResData,
-    TokenTypeEnum
+    ResData
 } from '#shared/types/interfaces';
-import { SpecsConfig, Route } from '#shared/static';
+import { Route, SpecsConfig } from '#shared/static';
 
 import { init, requireRunTest, truncateTable } from './utils';
 
 import { IConfig } from '#/types';
-import { IEmailConfig } from '#/types/interfaces';
 
 import {
     UserDeleteDTO,
@@ -81,34 +74,15 @@ describe('Users module', () => {
     let sampleUser2: IUserPublic;
 
     beforeAll(async () => {
-        [app, specs, logger, dataSource] = await init();
+        [app, specs, logger, accessToken, dataSource] = await init();
         // --- Configs --------------------
         const configService: ConfigService<IConfig & IConfigSpecs> =
             app.get(ConfigService);
         specs = configService.getOrThrow('specs');
-        const jwt: IJwtConfig = configService.getOrThrow('jwt');
-        const email: IEmailConfig = configService.getOrThrow('email');
         const env: IEnvConfig = configService.getOrThrow('env');
 
         // --- Services --------------------
         userService = app.get<UserService>(UserService);
-
-        // --- JWT --------------------
-        const jwtOptions: JwtSignOptions = {
-            issuer: env.appId,
-            audience: env.frontEndOrigin,
-            subject: email.credentials.username,
-            expiresIn: jwt.tokens[TokenTypeEnum.ACCESS].timeMs,
-            algorithm: 'RS256'
-        };
-        const jwtPayload: IAccessPayload = { uuid: v4(), username: 'username' };
-        const token: string = Jwt.sign(
-            jwtPayload,
-            jwt.tokens[TokenTypeEnum.ACCESS].privateKey,
-            jwtOptions
-        );
-        accessToken = `Bearer ${token}`;
-        logger.debug(token);
 
         runTest = requireRunTest(app, accessToken, env.frontEndOrigin);
     }, SpecsConfig.specs.getHookTimeoutMs());
@@ -136,7 +110,7 @@ describe('Users module', () => {
         async () => {
             const dto: UserReadDTOType = { user: { uuid: 'uuid' } };
             const res: Response = await request(app.getHttpServer())
-                .get(Route.users.index)
+                .get(Route.user.index)
                 .set('Content-type', MimeType.ApplicationJson)
                 .set('Accepts', MimeType.ApplicationJson)
                 .send(dto);
@@ -147,13 +121,19 @@ describe('Users module', () => {
         specs.getHookTimeoutMs()
     );
 
-    describe(Route.users.index + ' DELETE', function () {
+    describe(Route.user.index + ' DELETE', function () {
         const runDeleteTest = (
             dto: UserDeleteDTO,
             status: HttpStatus = HttpStatus.OK,
             message = `Successfully deleted the user`
         ): Promise<void> => {
-            return runTest('delete', Route.users.index, dto, status, message);
+            return runTest(
+                'delete',
+                Route.user.index,
+                (req: request.Test) => req.send(dto),
+                status,
+                message
+            );
         };
 
         it(
@@ -178,7 +158,7 @@ describe('Users module', () => {
         );
     });
 
-    describe(Route.users.index + ' PUT', function () {
+    describe(Route.user.index + ' PUT', function () {
         const runUpdateTest = <T extends object>(
             dto: UserUpdateDTO,
             payload: T | undefined,
@@ -186,8 +166,16 @@ describe('Users module', () => {
             message = `Successfully updated the user`
         ): Promise<void> => {
             // eslint-disable-next-line sonarjs/no-duplicate-string
-            const url = Route.users.index;
-            return runTest('put', url, dto, status, message, payload);
+            const url = Route.user.index;
+            return runTest(
+                'put',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message,
+                MimeType.ApplicationJson,
+                payload
+            );
         };
 
         it(
@@ -311,7 +299,7 @@ describe('Users module', () => {
         );
     });
 
-    describe(Route.users.index + ' GET', function () {
+    describe(Route.user.index + ' GET', function () {
         const runReadTest = <T extends object>(
             dto: UserReadDTOType,
             payload: T[] | undefined,
@@ -319,8 +307,16 @@ describe('Users module', () => {
             message = `Successfully read the users`
         ): Promise<void> => {
             // eslint-disable-next-line sonarjs/no-duplicate-string
-            const url = Route.users.index;
-            return runTest('get', url, dto, status, message, payload);
+            const url = Route.user.index;
+            return runTest(
+                'get',
+                url,
+                (req: request.Test) => req.send(dto),
+                status,
+                message,
+                MimeType.ApplicationJson,
+                payload
+            );
         };
 
         it(

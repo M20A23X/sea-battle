@@ -7,7 +7,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { NodeEnv } from '#shared/types/interfaces';
 
 import {
-    PublicConfig,
+    AssetsConfig,
     AuthConfig,
     DatabaseConfig,
     EmailConfig,
@@ -22,7 +22,7 @@ import { LogRequestMiddleware } from '#/middleware';
 import {
     AuthModule,
     HealthModule,
-    // ResourceModule,
+    ResourceModule,
     MailerModule,
     UserModule
 } from '#/modules';
@@ -40,7 +40,7 @@ import { LoggerService } from '#/services';
                 EmailConfig,
                 GeneralConfig,
                 HealthConfig,
-                PublicConfig,
+                AssetsConfig,
                 ValidationConfig
             ],
             envFilePath:
@@ -52,7 +52,7 @@ import { LoggerService } from '#/services';
         }),
         HealthModule,
         MailerModule,
-        // ResourceModule,
+        ResourceModule,
         UserModule,
         AuthModule
     ],

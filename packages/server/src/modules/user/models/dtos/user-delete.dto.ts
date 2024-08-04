@@ -1,9 +1,10 @@
 import { IUserDelete, IUserDTO } from '#shared/types/interfaces';
 import { UuidDTO } from '#/modules/base';
-import { createUserDTO } from '#/utils/dto.util';
+import { DTO } from '#/utils/dto.util';
 
+//--- UserDeleteDTO -----------
 class UserDeleteDTO
-    extends createUserDTO<IUserDelete>(UuidDTO)
+    extends DTO.user<IUserDelete>(UuidDTO)
     implements IUserDTO<IUserDelete> {}
 
 export { UserDeleteDTO };

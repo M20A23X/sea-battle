@@ -21,23 +21,21 @@ import { Route } from '#shared/static';
 import { AuthGuard } from '#/guards';
 
 import {
-    ConfirmationTokenDTO,
-    RefreshTokenAccessDTO,
+    AuthTokenDTO,
     RequestPasswordResetDTO,
     ResetPasswordDTO,
     SignInDTO,
-    SignOutDTO,
     SignUpDTO
 } from '#/modules/auth';
 import { AuthService } from '#/services';
 
 interface IAuthController {
     postSignUp(origin: string, body: SignUpDTO): Res;
-    putConfirm(body: ConfirmationTokenDTO): Res;
+    putConfirm(body: AuthTokenDTO): Res;
     putReset(body: ResetPasswordDTO): Res;
     postSignIn(origin: string, body: SignInDTO): Res<IAuthResult>;
-    getRefreshTokenAccess(body: RefreshTokenAccessDTO): Res<ISession>;
-    postSignOut(body: SignOutDTO): Res;
+    getRefreshTokenAccess(body: AuthTokenDTO): Res<ISession>;
+    postSignOut(body: AuthTokenDTO): Res;
 }
 
 @Controller(Route.auth.index)
@@ -67,11 +65,11 @@ class AuthController implements IAuthController {
 
     //--- Put /confirm -----------
     @Put(Route.auth.emailConfirmation)
-    @ApiBody({ type: [ConfirmationTokenDTO] })
+    @ApiBody({ type: [AuthTokenDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Confirm the user' })
-    public async putConfirm(@Body() body: ConfirmationTokenDTO): Res {
+    public async putConfirm(@Body() body: AuthTokenDTO): Res {
         await this._authService.confirmEmail(body.auth.token);
         return { message: 'Successfully confirmed the user' };
     }
@@ -125,12 +123,12 @@ class AuthController implements IAuthController {
 
     //--- GET /refresh -----------
     @Get(Route.auth.accessRefresh)
-    @ApiBody({ type: [RefreshTokenAccessDTO] })
+    @ApiBody({ type: [AuthTokenDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Refresh token access' })
     public async getRefreshTokenAccess(
-        @Body() body: RefreshTokenAccessDTO
+        @Body() body: AuthTokenDTO
     ): Res<ISession> {
         const session: ISession = await this._authService.refreshTokenAccess(
             body.auth.token
@@ -144,11 +142,11 @@ class AuthController implements IAuthController {
     //--- GET /signout -----------
     @Post(Route.auth.signOut)
     @UseGuards(AuthGuard)
-    @ApiBody({ type: [SignOutDTO] })
+    @ApiBody({ type: [AuthTokenDTO] })
     @ApiConsumes(MimeType.ApplicationJson)
     @ApiProduces(MimeType.ApplicationJson)
     @ApiOperation({ summary: 'Sign out the user' })
-    public async postSignOut(@Body() body: SignOutDTO): Res {
+    public async postSignOut(@Body() body: AuthTokenDTO): Res {
         await this._authService.signOut(body.auth.token);
         return { message: 'Successfully signed out the user' };
     }
