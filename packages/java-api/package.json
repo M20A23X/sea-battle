@@ -1,0 +1,15 @@
+{
+  "name": "java-api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "gradlew build",
+    "pre-push": "yarn test:quick",
+    "start": "gradlew start",
+    "start:dev": "yarn start --watch --debug",
+    "start:prod": "yarn build && java -jar build/libs/games-0.0.1-SNAPSHOT.jar",
+    "test": "gradlew test",
+    "test:quick": "yarn test",
+    "test:watch": "yarn test --watch"
+  }
+}
