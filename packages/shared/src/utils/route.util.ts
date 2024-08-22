@@ -1,6 +1,4 @@
-import { IRoute } from '#/types';
-
-const getRoute = <T extends IRoute[keyof IRoute]>(
+const getRoute = <T extends { index: string } & Record<string, string>>(
     controller: T,
     route?: keyof Omit<T, 'index'>
 ): string =>

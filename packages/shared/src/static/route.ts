@@ -1,7 +1,5 @@
-import { IRoute } from '#/types';
-
-const Route: IRoute = {
-    user: { index: '/users' },
+const Route = {
+    users: { index: '/users' },
     health: {
         index: '/health',
         status: '/status'
@@ -15,8 +13,7 @@ const Route: IRoute = {
         signIn: '/signin',
         accessRefresh: '/refresh',
         signOut: '/signout'
-    },
-    resource: { index: '/resources' }
+    }
 };
 
 export { Route };

@@ -11,7 +11,7 @@
     "_start:shared": "lerna run start:dev --scope shared",
     "build": "yarn _build:shared && lerna run build --scope",
     "clean": "lerna clean -y",
-    "clean:build": "rm -rf ./packages/**/*.tsbuildinfo ./packages/**/dist/",
+    "clean:build": "rm -rf ./packages/**/*.tsbuildinfo ./packages/**/dist/ ./packages/**/build/",
     "pre-commit": "yarn _build:shared && lerna run --concurrency 1 --stream pre-commit --since HEAD --exclude-dependents",
     "pre-push": "set NODE_ENV=testing&&yarn _build:shared && lerna run --concurrency 1 --stream pre-push",
     "prepare": "husky install",

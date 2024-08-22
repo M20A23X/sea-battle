@@ -11,7 +11,6 @@
   "moduleNameMapper": {
     "^uuid$": "uuid",
     "^typeorm$": "typeorm",
-    "^#shared/specs/(.+)": "<rootDir>/../shared/dist/specs/$1",
     "^#shared/(.+)": "<rootDir>/../shared/dist/src/$1",
     "^#/(.+)": "<rootDir>/src/$1"
   },
